@@ -16,6 +16,17 @@
       "source": { "source": "github", "repo": "christinoleo/skills" },
       "description": "Matt Pocock skills bundle: diagnose, tdd, caveman, grill-me, grill-with-docs, triage, improve-codebase-architecture, setup-matt-pocock-skills, to-issues, to-prd, zoom-out, prototype, handoff, write-a-skill",
       "version": "1.0.0"
+    },
+    {
+      "name": "frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/frontend-design",
+        "ref": "main"
+      },
+      "description": "Anthropic frontend-design plugin: distinctive, production-grade frontend interfaces with high design quality (avoids generic AI aesthetics)",
+      "version": "1.0.0"
     }
   ]
 }
