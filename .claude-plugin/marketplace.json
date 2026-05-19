@@ -10,6 +10,12 @@
       "source": "./plugin",
       "description": "Dev workflow commands: bcheck, linus, p1/p2 orchestration, replan, redelta, triage, verify, plan-to-beads",
       "version": "1.0.0"
+    },
+    {
+      "name": "mattpocock-skills",
+      "source": { "source": "github", "repo": "christinoleo/skills" },
+      "description": "Matt Pocock skills bundle: diagnose, tdd, caveman, grill-me, grill-with-docs, triage, improve-codebase-architecture, setup-matt-pocock-skills, to-issues, to-prd, zoom-out, prototype, handoff, write-a-skill",
+      "version": "1.0.0"
     }
   ]
 }
