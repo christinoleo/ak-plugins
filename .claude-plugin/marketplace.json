@@ -1,6 +1,6 @@
 {
   "name": "ak-plugins",
-  "description": "Personal dev workflow toolkit — GitHub Issues orchestration, code review, planning, and browser verification",
+  "description": "Personal dev workflow toolkit \u2014 GitHub Issues orchestration, code review, planning, and browser verification",
   "owner": {
     "name": "aknakos"
   },
@@ -9,11 +9,14 @@
       "name": "ak",
       "source": "./plugin",
       "description": "Dev workflow commands: bcheck, linus, p1/p2 orchestration, replan, redelta, triage, verify, plan-to-issues",
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "name": "mattpocock-skills",
-      "source": { "source": "github", "repo": "christinoleo/skills" },
+      "source": {
+        "source": "github",
+        "repo": "christinoleo/skills"
+      },
       "description": "Matt Pocock skills bundle: diagnose, tdd, caveman, grill-me, grill-with-docs, triage, improve-codebase-architecture, setup-matt-pocock-skills, to-issues, to-prd, zoom-out, prototype, handoff, write-a-skill",
       "version": "1.0.0"
     },
@@ -36,7 +39,7 @@
         "path": "plugins/plugin-dev",
         "ref": "main"
       },
-      "description": "Anthropic plugin-dev toolkit: skills for hooks, MCP, commands, agents, validation — for developing Claude Code plugins",
+      "description": "Anthropic plugin-dev toolkit: skills for hooks, MCP, commands, agents, validation \u2014 for developing Claude Code plugins",
       "version": "0.1.0"
     }
   ]
