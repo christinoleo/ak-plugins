@@ -52,7 +52,7 @@ JSON
         cat <<'JSON'
 {
   "hookSpecificOutput": {
-    "additionalContext": "WORKFLOW HINT: After the replan audit is approved and ExitPlanMode is called, suggest running /plan-to-beads to convert the plan into a trackable epic with tasks."
+    "additionalContext": "WORKFLOW HINT: After the replan audit is approved and ExitPlanMode is called, suggest running /plan-to-issues to convert the plan into a trackable GitHub issue epic with tasks."
   }
 }
 JSON

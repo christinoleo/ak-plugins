@@ -1,7 +1,7 @@
 ---
 name: bcheck
 description: |
-  Pick up a beads issue (by ID or next ready), assess if it has enough context to implement,
+  Pick up a GitHub issue (by ID or next ready), assess if it has enough context to implement,
   and either start working or enter plan mode to gather missing context. Ends with /replan if planning.
 ---
 
@@ -15,14 +15,14 @@ right now, or do I need to ask questions first?
 
 If `$ARGUMENTS` is provided, use it as the issue ID:
 ```bash
-bd show $ARGUMENTS
+gh issue view $ARGUMENTS
 ```
 
 If no argument provided, find the next ready issue:
 ```bash
-bd ready
+gh issue list --label ready --state open --sort created
 ```
-Pick the first (highest priority, lowest ID) issue from the ready list. Run `bd show <id>` on it.
+Pick the first (oldest, highest priority) issue from the ready list. Run `gh issue view <id>` on it.
 
 If no ready issues exist, say so and stop.
 
@@ -77,7 +77,7 @@ If context is sufficient:
 
 1. Claim the issue:
 ```bash
-bd update <id> --status=in_progress
+gh issue edit <id> --add-label in-progress --remove-label ready
 ```
 
 2. State your assessment briefly:
@@ -97,7 +97,7 @@ If context is insufficient:
 
 1. Claim the issue:
 ```bash
-bd update <id> --status=in_progress
+gh issue edit <id> --add-label in-progress --remove-label ready
 ```
 
 2. State what you know and what's missing:

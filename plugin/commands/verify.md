@@ -17,7 +17,7 @@ Analyze what was implemented by examining:
 
 1. **Git diff** — `git diff` and `git log` to see what files changed
 2. **Conversation history** — What features/fixes were implemented
-3. **Beads tasks** — If tracking with beads, check what was closed this session
+3. **GitHub issues** — If tracking with gh issues, check what was closed this session via `gh issue list --search 'closed:>=<date>'`
 
 From this, build two categories of test items:
 

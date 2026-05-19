@@ -19,10 +19,10 @@ CLI commands you use:
 - `claude-mux capture <MAIN_TARGET> --lines 80` — check what main outputted
 - `claude-mux status <MAIN_TARGET>` — check main's state
 
-Beads commands you use (run these YOURSELF, not via main):
-- `bd ready --parent <EPIC_ID>` — get tasks ready to work
-- `bd show <taskId>` — get task details (title, description)
-- `bd list --parent <EPIC_ID> --status=open` — check remaining tasks
+GitHub Issue commands you use (run these YOURSELF, not via main):
+- `gh issue list --label ready --state open --search "\"Part of #<EPIC_ID>\" in:body"` — get tasks ready to work under this epic
+- `gh issue view <taskId>` — get task details (title, body)
+- `gh issue list --state open --search "\"Part of #<EPIC_ID>\" in:body"` — check remaining open tasks under this epic
 
 STUCK HANDLING: If main reaches `waiting` or `permission` state unexpectedly, log
 "Main session paused (state: [state]). Waiting for user to handle it." and re-wait
@@ -30,34 +30,34 @@ with `--state idle`. The user can see their main session and will handle it.
 
 ## MAIN LOOP
 
-Repeat until `bd ready --parent <EPIC_ID>` returns no tasks:
+Repeat until `gh issue list --label ready --state open --search "\"Part of #<EPIC_ID>\" in:body"` returns no tasks:
 
 ### 1. Pick next task
 ```bash
-bd ready --parent <EPIC_ID>
+gh issue list --label ready --state open --search "\"Part of #<EPIC_ID>\" in:body"
 ```
-Pick the first ready task. Save its ID as TASK_ID.
+Pick the first ready task. Save its issue number as TASK_ID.
 ```bash
-bd show <TASK_ID>
+gh issue view <TASK_ID>
 ```
-Save its title and description.
+Save its title and body.
 
 ### 2. Send task to main
 Send to main:
-"Work on beads issue <TASK_ID>: <title>
+"Work on GitHub issue #<TASK_ID>: <title>
 
-<description>
+<body>
 
 When you're done:
 1. Commit your changes with a descriptive message
-2. Close the issue: bd close <TASK_ID>
+2. Close the issue: gh issue close <TASK_ID> --reason completed
 3. Stop and wait for the next task"
 
 Wait with `--state idle,waiting,permission --timeout 900`.
 
-If main is idle: check if task was closed with `bd show <TASK_ID>`.
+If main is idle: check if task was closed with `gh issue view <TASK_ID>`.
 - If closed: good, continue
-- If still open: send to main "Please close beads issue <TASK_ID>: bd close <TASK_ID>"
+- If still open: send to main "Please close GitHub issue #<TASK_ID>: gh issue close <TASK_ID> --reason completed"
   Wait for idle. If still not closed after retry, log warning and continue.
 
 If main is waiting/permission: log and re-wait for idle (user handles it).
@@ -86,13 +86,13 @@ Go back to step 1.
 
 ## FINAL GATES
 
-When `bd ready --parent <EPIC_ID>` returns no tasks:
+When `gh issue list --label ready --state open --search "\"Part of #<EPIC_ID>\" in:body"` returns no tasks:
 
 1. Check for open but blocked tasks:
 ```bash
-bd list --parent <EPIC_ID> --status=open
+gh issue list --state open --search "\"Part of #<EPIC_ID>\" in:body"
 ```
-If there are open tasks that aren't ready (blocked), log them and continue.
+If there are open tasks that aren't ready (blocked, i.e. lack the `ready` label), log them and continue.
 
 2. Send to main: "/linus"
 Wait for idle.
@@ -101,6 +101,6 @@ Wait for idle.
 Wait for idle.
 
 4. Send to main:
-"Epic <EPIC_ID> execution complete. The trigger agent will now shut down. All tasks have been processed, reviewed, and triaged."
+"Epic #<EPIC_ID> execution complete. The trigger agent will now shut down. All tasks have been processed, reviewed, and triaged."
 
 5. Stop. You are done.

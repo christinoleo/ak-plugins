@@ -1,7 +1,7 @@
 ---
 name: p1-trigger
 description: |
-  Trigger loop for Phase 1. Drives a main session through plan → approve → replan → beads.
+  Trigger loop for Phase 1. Drives a main session through plan → approve → replan → issues.
   Called by /p1 on a spawned trigger session. Do not run this directly.
 ---
 
@@ -47,21 +47,16 @@ If grade is C or below, send to main:
 Wait for idle. Capture and re-check. If still bad after 2 attempts, stop and report failure.
 
 STEP 4: Send to main:
-"/plan-to-beads"
+"/plan-to-issues"
 
-Wait for idle. Capture output. Note the epic ID from the output.
+Wait for idle. Capture output. Note the epic issue number from the output.
 
 STEP 5: Send to main:
-"Verify that the beads tasks for the epic just created match the plan. For each plan section, check that a corresponding task exists with matching description and correct dependencies. Fix any gaps with bd update, bd create, or bd dep add."
+"Verify that the GitHub issues for the epic just created match the plan. For each plan section, check that a corresponding task issue exists with matching description and that the epic body's task list references all of them. Fix any gaps with gh issue create, gh issue edit, or by editing the epic body."
 
 Wait for idle.
 
-STEP 6: Send to main:
-"bd sync"
-
-Wait for idle.
-
-STEP 7: You're done. Send to main:
-"Phase 1 complete. The plan has been scored, converted to beads, verified, and synced. Run bd ready to see available tasks, or /p2 <epicId> for automated execution."
+STEP 6: You're done. Send to main:
+"Phase 1 complete. The plan has been scored, converted to GitHub issues, and verified. Run gh issue list --label ready --state open to see available tasks, or /p2 <epicId> for automated execution."
 
 Then stop. Do not do anything else.

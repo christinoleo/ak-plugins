@@ -72,7 +72,7 @@ in the batch. Each question should:
 
 - Use the finding ID as the `header` (e.g., "F1", "F2")
 - Have contextual options for THAT finding (the recommended fix, a specific alternative,
-  "Defer to beads task", "Disagree/skip")
+  "Defer to GitHub issue", "Disagree/skip")
 - NOT be generic accept/reject — tailor options to the specific finding
 
 Example structure for a batch of 3:
@@ -93,7 +93,7 @@ F[N]: [ACCEPT | DEFER | DISAGREE | ALTERNATIVE] — [brief note on what was deci
 ```
 
 - **Accept** — Will fix now as discussed
-- **Defer** — Create a beads task for later (`bd create`)
+- **Defer** — Create a GitHub issue for later (`gh issue create`)
 - **Disagree** — Skip with documented reason
 - **Alternative** — Fix differently than originally recommended
 
@@ -109,7 +109,7 @@ After all items are discussed, present the final tally:
 | Decision | Count | Items |
 |----------|-------|-------|
 | Accept (fix now) | X | F1, F3, F7 |
-| Defer (beads task) | Y | F4, F9 |
+| Defer (GitHub issue) | Y | F4, F9 |
 | Disagree (skip) | Z | F2, F5 |
 | Alternative fix | W | F6, F8 |
 
@@ -119,8 +119,8 @@ After all items are discussed, present the final tally:
 3. F7: [what will be done]
 
 ### Deferred ([Y] items):
-- F4: [will create beads task: "..."]
-- F9: [will create beads task: "..."]
+- F4: [will create GitHub issue: "..."]
+- F9: [will create GitHub issue: "..."]
 ```
 
 Then ask: "Should I proceed with the fixes and create the deferred tasks?"
@@ -129,7 +129,7 @@ Then ask: "Should I proceed with the fixes and create the deferred tasks?"
 
 1. **Fix accepted items** — Apply the agreed fixes directly. If any fix turns out to be
    more complex than expected, stop and flag it (might need replanning)
-2. **Create deferred tasks** — `bd create` for each deferred item with proper descriptions
+2. **Create deferred issues** — `gh issue create` for each deferred item with proper title, body, and labels
 3. **Report** — Brief summary of what was done
 
 ## Rules
