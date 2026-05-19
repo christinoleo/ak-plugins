@@ -51,15 +51,24 @@ claude plugin install hookify@ak-plugins
 
 Edit commands in `plugin/commands/`, then commit. Consumers run `claude plugin update <name>@ak-plugins` to pull.
 
-### Version bump (automatic)
+### Version bump
 
-A `prepare-commit-msg` git hook in `.githooks/prepare-commit-msg` auto-bumps the `ak` plugin version when committing changes to `plugin/**` or `.claude-plugin/marketplace.json`. Bump type from Conventional Commits subject (read from the in-progress message file):
+A `pre-commit` git hook in `.githooks/pre-commit` auto-bumps the `ak` plugin version (`plugin.json` + `marketplace.json` together) when commits touch `plugin/**` or `.claude-plugin/marketplace.json`.
 
-- `<type>(scope)!:` or `BREAKING CHANGE` → major
-- `feat(scope):` → minor
-- anything else → patch
+- default: **patch** bump
+- `AK_BUMP=minor git commit ...` → minor
+- `AK_BUMP=major git commit ...` → major
+- `AK_BUMP=skip` (or `AK_NO_BUMP=1`) → no bump
 
-Skip with `AK_NO_BUMP=1 git commit ...`.
+If the staged diff already includes a `version` change, the hook skips (you already bumped manually).
+
+For out-of-band bumps without committing right away:
+
+```bash
+./scripts/bump.sh patch    # or minor / major
+```
+
+The hook cannot reliably read the in-progress commit message across `-m` and editor flows, so Conventional Commits subjects are not parsed — use `AK_BUMP=...` for non-patch bumps.
 
 **One-time setup after clone:**
 
@@ -76,7 +85,9 @@ ak-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json       # Marketplace catalog
 ├── .githooks/
-│   └── prepare-commit-msg     # Auto version-bump hook
+│   └── pre-commit             # Auto patch version-bump hook
+├── scripts/
+│   └── bump.sh                # Manual version bump helper
 ├── plugin/                    # The `ak` plugin
 │   ├── .claude-plugin/
 │   │   └── plugin.json
