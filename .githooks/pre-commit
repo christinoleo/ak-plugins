@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Auto-bump ak plugin version when plugin files change.
-# Bump type from Conventional Commits subject:
+# Runs as pre-commit so file modifications land in the commit being created
+# (commit-msg is too late — git has already snapshotted the tree).
+# Bump type from Conventional Commits subject (read from .git/COMMIT_EDITMSG
+# which is populated for both -m and editor flows before pre-commit fires):
 #   <type>(scope)!:  or  BREAKING CHANGE  -> major
 #   feat(scope):                          -> minor
 #   any other type touching plugin/       -> patch
@@ -10,12 +13,14 @@ set -e
 
 [ "${AK_NO_BUMP:-0}" = "1" ] && exit 0
 
-MSG_FILE="$1"
-SUBJECT=$(head -1 "$MSG_FILE")
-
 REPO_ROOT=$(git rev-parse --show-toplevel)
+GIT_DIR=$(git rev-parse --git-dir)
 PLUGIN_JSON="$REPO_ROOT/plugin/.claude-plugin/plugin.json"
 MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
+
+MSG_FILE="$GIT_DIR/COMMIT_EDITMSG"
+SUBJECT=""
+[ -f "$MSG_FILE" ] && SUBJECT=$(head -1 "$MSG_FILE" 2>/dev/null || true)
 
 CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(plugin/|\.claude-plugin/marketplace\.json$)' || true)
 [ -z "$CHANGED" ] && exit 0

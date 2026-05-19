@@ -53,7 +53,7 @@ Edit commands in `plugin/commands/`, then commit. Consumers run `claude plugin u
 
 ### Version bump (automatic)
 
-A `commit-msg` git hook in `.githooks/commit-msg` auto-bumps the `ak` plugin version when committing changes to `plugin/**` or `.claude-plugin/marketplace.json`. Bump type from Conventional Commits subject:
+A `pre-commit` git hook in `.githooks/pre-commit` auto-bumps the `ak` plugin version when committing changes to `plugin/**` or `.claude-plugin/marketplace.json`. Bump type from Conventional Commits subject (read from `.git/COMMIT_EDITMSG`):
 
 - `<type>(scope)!:` or `BREAKING CHANGE` → major
 - `feat(scope):` → minor
@@ -76,7 +76,7 @@ ak-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json       # Marketplace catalog
 ├── .githooks/
-│   └── commit-msg             # Auto version-bump hook
+│   └── pre-commit             # Auto version-bump hook
 ├── plugin/                    # The `ak` plugin
 │   ├── .claude-plugin/
 │   │   └── plugin.json
