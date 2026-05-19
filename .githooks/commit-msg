@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Auto-bump ak plugin version when plugin files change.
+# Bump type from Conventional Commits subject:
+#   <type>(scope)!:  or  BREAKING CHANGE  -> major
+#   feat(scope):                          -> minor
+#   any other type touching plugin/       -> patch
+# Skip with: AK_NO_BUMP=1 git commit ...
+
+set -e
+
+[ "${AK_NO_BUMP:-0}" = "1" ] && exit 0
+
+MSG_FILE="$1"
+SUBJECT=$(head -1 "$MSG_FILE")
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+PLUGIN_JSON="$REPO_ROOT/plugin/.claude-plugin/plugin.json"
+MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
+
+CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(plugin/|\.claude-plugin/marketplace\.json$)' || true)
+[ -z "$CHANGED" ] && exit 0
+
+if echo "$SUBJECT" | grep -qE '^[a-z]+(\([^)]+\))?!:|BREAKING[ -]CHANGE'; then
+  BUMP=major
+elif echo "$SUBJECT" | grep -qE '^feat(\([^)]+\))?:'; then
+  BUMP=minor
+else
+  BUMP=patch
+fi
+
+CURRENT=$(python3 -c "import json; print(json.load(open('$PLUGIN_JSON'))['version'])")
+IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
+case "$BUMP" in
+  major) MAJ=$((MAJ + 1)); MIN=0; PAT=0 ;;
+  minor) MIN=$((MIN + 1)); PAT=0 ;;
+  patch) PAT=$((PAT + 1)) ;;
+esac
+NEW="$MAJ.$MIN.$PAT"
+
+python3 <<PY
+import json
+plugin_path = "$PLUGIN_JSON"
+mp_path = "$MARKETPLACE_JSON"
+new = "$NEW"
+
+with open(plugin_path) as f:
+    d = json.load(f)
+d["version"] = new
+with open(plugin_path, "w") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+
+with open(mp_path) as f:
+    d = json.load(f)
+for p in d.get("plugins", []):
+    if p.get("name") == "ak":
+        p["version"] = new
+with open(mp_path, "w") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+PY
+
+git add "$PLUGIN_JSON" "$MARKETPLACE_JSON"
+echo "[ak version-bump hook] $CURRENT -> $NEW ($BUMP)" >&2
