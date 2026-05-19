@@ -27,6 +27,28 @@
       },
       "description": "Anthropic frontend-design plugin: distinctive, production-grade frontend interfaces with high design quality (avoids generic AI aesthetics)",
       "version": "1.0.0"
+    },
+    {
+      "name": "plugin-dev",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-code.git",
+        "path": "plugins/plugin-dev",
+        "ref": "main"
+      },
+      "description": "Anthropic plugin-dev toolkit: skills for hooks, MCP, commands, agents, validation — for developing Claude Code plugins",
+      "version": "0.1.0"
+    },
+    {
+      "name": "hookify",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-code.git",
+        "path": "plugins/hookify",
+        "ref": "main"
+      },
+      "description": "Anthropic hookify plugin: create custom hooks from conversation patterns or explicit rules via markdown",
+      "version": "0.1.0"
     }
   ]
 }
