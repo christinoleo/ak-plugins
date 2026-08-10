@@ -1,6 +1,16 @@
 {
-  "description": "Workflow hints — injects next-step context based on tool/skill usage",
+  "description": "Workflow hints — injects next-step context based on tool/skill usage. Also auto-activates the caveman register at session start.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/caveman.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "EnterPlanMode",

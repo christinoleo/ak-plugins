@@ -27,14 +27,18 @@ Personal Claude Code plugin marketplace — dev workflow commands plus curated p
 | `/p1-trigger` | Trigger loop for Phase 1 (called by /p1, do not run directly) |
 | `/p2` | Phase 2 orchestration: execute epic tasks with review between each (spawns trigger agent) |
 | `/p2-trigger` | Trigger loop for Phase 2 (called by /p2, do not run directly) |
+| `/caveman-off` | Stop caveman switching itself on, in this and every future session |
+| `/caveman-on` | Restore the default — caveman auto-activates each session |
 
 ## `ak` skills
 
 | Skill | Description |
 |-------|-------------|
-| `/caveman` | Ultra-compressed conversation register — drops filler while keeping technical accuracy. Chat only; never applies to files, commits, issues or anything published. User-invoked; say "stop caveman" to exit. |
+| `/caveman` | Ultra-compressed conversation register — drops filler while keeping technical accuracy. Chat only; never applies to files, commits, issues or anything published. **On by default**: the `SessionStart` hook activates it every session, so typing `/caveman` is only ever a re-assert. Say "stop caveman" to drop it for this session, or `/caveman-off` to stop it coming back. |
 
 ## `ak` hooks
+
+**caveman.sh** — SessionStart hook that switches the caveman register on at the top of every session. It reads the rules straight out of `plugin/skills/caveman/SKILL.md`, so the skill file stays the single source of truth. Silent when `~/.claude/ak-caveman.state` contains `off` (written by `/caveman-off`). Dependency-free bash.
 
 **workflow-hints.sh** — PreToolUse hook that injects next-step context:
 - After `EnterPlanMode`: reminds to run `/replan` before exiting plan mode

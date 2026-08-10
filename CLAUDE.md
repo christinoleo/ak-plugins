@@ -77,4 +77,8 @@ Do not reintroduce `bd` references when editing commands.
 
 The `caveman` skill lives at `plugin/skills/caveman/SKILL.md`. It is user-invoked only (`disable-model-invocation: true`) — the model cannot switch itself into the register.
 
+It is nevertheless **on by default**: `plugin/hooks/caveman.sh` runs on `SessionStart` and injects the skill body as context. The hook reads `SKILL.md` rather than carrying its own copy of the rules, so edit the skill and the always-on behaviour follows. Three off switches, widening blast radius: saying "stop caveman" drops it for the session; `/caveman-off` writes `off` to `~/.claude/ak-caveman.state` and keeps it off in every future session; `/caveman-on` deletes that file to restore the default.
+
+Keep `caveman.sh` free of `jq` and other non-core binaries. `SessionStart` accepts plain stdout as context, so no JSON is needed — and jq is genuinely missing on some machines this plugin installs to.
+
 If `caveman` mode is active in the session, it governs conversation only. **Never apply caveman register to files** in this repo — commands, command descriptions, README, plugin.json descriptions, and CLAUDE.md are all artifacts read by other people and other agents. Write them in normal prose regardless of conversation register.
