@@ -17,8 +17,8 @@
         "source": "github",
         "repo": "christinoleo/skills"
       },
-      "description": "Matt Pocock skills bundle: diagnose, tdd, caveman, grill-me, grill-with-docs, triage, improve-codebase-architecture, setup-matt-pocock-skills, to-issues, to-prd, zoom-out, prototype, handoff, write-a-skill",
-      "version": "1.0.0"
+      "description": "Matt Pocock skills bundle: grill-me, grilling, grill-with-docs, to-spec, to-tickets, wayfinder, implement, tdd, code-review, diagnosing-bugs, domain-modeling, codebase-design, improve-codebase-architecture, research, prototype, wizard, resolving-merge-conflicts, triage, handoff, teach, to-questionnaire, wait-what, writing-for-agents, ask-matt, setup-matt-pocock-skills",
+      "version": "1.2.3"
     },
     {
       "name": "frontend-design",
