@@ -7,7 +7,7 @@ Personal Claude Code plugin marketplace — dev workflow commands plus curated p
 | Plugin | Source | What it is |
 |--------|--------|------------|
 | `ak` | this repo (`./plugin`) | Dev workflow commands (this README's commands section) |
-| `mattpocock-skills` | `christinoleo/skills` (fork of `mattpocock/skills`) | Matt Pocock skills bundle with our caveman fork |
+| `mattpocock-skills` | `christinoleo/skills` (fork of `mattpocock/skills`) | Matt Pocock skills bundle, tracked clean against upstream |
 | `frontend-design` | `anthropics/claude-plugins-official` (git-subdir) | Anthropic frontend-design plugin |
 | `plugin-dev` | `anthropics/claude-code` (git-subdir) | Toolkit for developing Claude Code plugins |
 | `hookify` | `anthropics/claude-code` (git-subdir) | Generate custom hooks from rules |
@@ -27,6 +27,12 @@ Personal Claude Code plugin marketplace — dev workflow commands plus curated p
 | `/p1-trigger` | Trigger loop for Phase 1 (called by /p1, do not run directly) |
 | `/p2` | Phase 2 orchestration: execute epic tasks with review between each (spawns trigger agent) |
 | `/p2-trigger` | Trigger loop for Phase 2 (called by /p2, do not run directly) |
+
+## `ak` skills
+
+| Skill | Description |
+|-------|-------------|
+| `/caveman` | Ultra-compressed conversation register — drops filler while keeping technical accuracy. Chat only; never applies to files, commits, issues or anything published. User-invoked; say "stop caveman" to exit. |
 
 ## `ak` hooks
 

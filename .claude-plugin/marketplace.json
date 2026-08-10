@@ -8,8 +8,8 @@
     {
       "name": "ak",
       "source": "./plugin",
-      "description": "Dev workflow commands: bcheck, linus, p1/p2 orchestration, replan, redelta, triage, verify, plan-to-issues",
-      "version": "1.1.1"
+      "description": "Dev workflow commands: bcheck, linus, p1/p2 orchestration, replan, redelta, triage, verify, plan-to-issues. Plus the caveman skill.",
+      "version": "1.1.2"
     },
     {
       "name": "mattpocock-skills",

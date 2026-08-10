@@ -75,4 +75,6 @@ Do not reintroduce `bd` references when editing commands.
 
 ## Caveman scope (when active)
 
+The `caveman` skill lives at `plugin/skills/caveman/SKILL.md`. It is user-invoked only (`disable-model-invocation: true`) — the model cannot switch itself into the register.
+
 If `caveman` mode is active in the session, it governs conversation only. **Never apply caveman register to files** in this repo — commands, command descriptions, README, plugin.json descriptions, and CLAUDE.md are all artifacts read by other people and other agents. Write them in normal prose regardless of conversation register.
