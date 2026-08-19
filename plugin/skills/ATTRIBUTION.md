@@ -74,6 +74,12 @@ is all this plugin has. Beyond that:
 - `show-me-your-work`'s transcript audit moved to `~/.claude/projects/<project-slug>/`, and its
   mandatory cross-model review became a reviewer with an assigned skeptic's lens.
 
+- `show-me-your-work` and `technical-writing` had `disable-model-invocation` removed. Upstream
+  ships both as user-invoked only. Here the agent should reach for them on its own: the decision
+  trail is most valuable on exactly the long unattended runs where nobody is around to ask for it,
+  and the writing standard should apply to a PR description whether or not someone typed the
+  slash command.
+
 ## The one vendored script
 
 `show-me-your-work/scripts/log.sh` was reviewed line by line and exercised against crafted input.

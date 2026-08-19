@@ -9,7 +9,7 @@
       "name": "ak",
       "source": "./plugin",
       "description": "Dev workflow commands: ak-help, bcheck, linus, triage, verify, replan, plan-to-issues. Plus the caveman skill and a vendored set of engineering-principle skills.",
-      "version": "1.2.0"
+      "version": "1.3.0"
     },
     {
       "name": "mattpocock-skills",
