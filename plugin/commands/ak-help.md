@@ -1,9 +1,10 @@
 ---
 name: ak-help
 description: |
-  List every skill and command installed from this marketplace, then say which ones apply to
-  what is happening right now. Pass a task description to route that instead of the current
-  conversation. Named ak-help because /help is Claude Code's own command.
+  List every skill and command available here — installed from this marketplace or built into
+  Claude Code — then say which ones apply to what is happening right now. Pass a task
+  description to route that instead of the current conversation. Named ak-help because /help is
+  Claude Code's own command.
 ---
 
 # ak-help: what is installed, and what applies here
@@ -13,8 +14,8 @@ second is the point; a bare inventory is something the user could get from `clau
 
 ## Step 1: enumerate what is actually installed
 
-Do not answer from memory, and do not answer from the skill list in your context. That list is
-filtered and can lag behind what is on disk. Read the filesystem.
+For plugin and local skills, do not answer from memory or from the skill list in your context.
+That list is filtered and can lag behind what is on disk. Read the filesystem.
 
 ```bash
 for root in ~/.claude/plugins/cache/*/*/*/ ~/.claude/skills/ .claude/skills/; do
@@ -41,6 +42,13 @@ for d in ~/.claude/plugins/cache/*/*/*/commands/; do
   done
 done | sort -u
 ```
+
+Claude Code also ships built-in skills inside the CLI itself (for example `/loop`, `/schedule`,
+`/code-review`, `/simplify`, `/security-review`). Those never appear on disk under the plugin
+cache, so the filesystem sweep cannot find them. For these, and only these, use the
+available-skills list in your context: collect every skill that did not come from a plugin or a
+local skills directory and label its source `builtin`. Note in the output that built-ins vary
+with the installed CLI version, so another machine may have a different set.
 
 Two things worth checking, because both change the answer:
 
@@ -70,7 +78,7 @@ At most five, ranked, most applicable first. Fewer is better than padding.
 
 ## Applies here
 
-| Skill | Plugin | Why now | What it does to your work |
+| Skill | Source | Why now | What it does to your work |
 |-------|--------|---------|---------------------------|
 | `/x` | ak | [the specific trigger you saw, not a paraphrase of the description] | [what changes if they run it] |
 
