@@ -1,6 +1,6 @@
 # ak-plugins
 
-Personal Claude Code plugin marketplace — dev workflow commands plus curated picks from other marketplaces.
+Personal Claude Code plugin marketplace. Dev workflow commands plus curated picks from other marketplaces.
 
 ## Plugins in this marketplace
 
@@ -10,41 +10,73 @@ Personal Claude Code plugin marketplace — dev workflow commands plus curated p
 | `mattpocock-skills` | `christinoleo/skills` (fork of `mattpocock/skills`) | Matt Pocock skills bundle, tracked clean against upstream |
 | `frontend-design` | `anthropics/claude-plugins-official` (git-subdir) | Anthropic frontend-design plugin |
 | `plugin-dev` | `anthropics/claude-code` (git-subdir) | Toolkit for developing Claude Code plugins |
-| `hookify` | `anthropics/claude-code` (git-subdir) | Generate custom hooks from rules |
 
 ## `ak` commands
 
 | Command | Description |
 |---------|-------------|
+| `/ak-help` | List every installed skill and command, and say which ones apply to what you are doing now |
 | `/bcheck` | Pick up a GitHub issue, assess context sufficiency, start coding or enter plan mode |
 | `/linus` | Linus Torvalds-style code review with sub-agent investigation |
 | `/triage` | Walk through review findings point-by-point, decide and execute fixes |
 | `/verify` | Browser-based verification of changes using Chrome DevTools |
-| `/replan` | Audit plan coverage against requirements, rewrite to 100% |
-| `/redelta` | Audit delivered work against requirements, produce delta to reach 100% |
+| `/replan` | Audit coverage against requirements and rewrite to 100%. Scores the plan by default, or the delivered work with `/replan delivered` |
 | `/plan-to-issues` | Convert approved plan into a GitHub Issues epic with tasks and dependencies |
-| `/p1` | Phase 1 orchestration: plan → replan → plan-to-issues (spawns trigger agent) |
-| `/p1-trigger` | Trigger loop for Phase 1 (called by /p1, do not run directly) |
-| `/p2` | Phase 2 orchestration: execute epic tasks with review between each (spawns trigger agent) |
-| `/p2-trigger` | Trigger loop for Phase 2 (called by /p2, do not run directly) |
 | `/caveman-off` | Stop caveman switching itself on, in this and every future session |
-| `/caveman-on` | Restore the default — caveman auto-activates each session |
+| `/caveman-on` | Restore the default, where caveman auto-activates each session |
 
 ## `ak` skills
 
 | Skill | Description |
 |-------|-------------|
-| `/caveman` | Ultra-compressed conversation register — drops filler while keeping technical accuracy. Chat only; never applies to files, commits, issues or anything published. **On by default**: the `SessionStart` hook activates it every session, so typing `/caveman` is only ever a re-assert. Say "stop caveman" to drop it for this session, or `/caveman-off` to stop it coming back. |
+| `/caveman` | Ultra-compressed conversation register that drops filler while keeping technical accuracy. Chat only, never applies to files, commits, issues or anything published. **On by default**: the `SessionStart` hook activates it every session, so typing `/caveman` is only ever a re-assert. Say "stop caveman" to drop it for this session, or `/caveman-off` to stop it coming back. |
+
+### Vendored engineering skills
+
+Forty skills and one agent vendored from
+[pstack](https://github.com/cursor/plugins/tree/main/pstack) (MIT, Lauren Tan). See
+`plugin/skills/ATTRIBUTION.md` for what was taken, what was left behind and why, and every change
+made when porting them from Cursor to Claude Code.
+
+| Skill | Description |
+|-------|-------------|
+| `principle-*` (20) | Short engineering rules the agent reads when the matching situation comes up: sizing a diff, choosing a data structure, placing validation, verifying work, sequencing commits |
+| `/architect` | Sketch types, signatures, and module boundaries before code, from three competing design runners |
+| `/arena` | Run N candidates at one task, pick a base, graft the best of the losers into it |
+| `/swarm` | Fan out parallel workers over slices, races, or gauntlets, and return one report |
+| `/how` | Explain how a subsystem works, with parallel explorers and an optional architectural critique |
+| `/why` | Trace design rationale across source control, tickets, docs, chat, observability, and error tracking |
+| `/explain-work` | Explain a body of work plainly, weaving `how` and `why` into one explanation |
+| `/blast-radius` | Find what a change breaks elsewhere, and prove it by running code |
+| `/interrogate` | Four independent reviewers challenge a change, each through a different lens |
+| `/no-comments` | Spawn the `comment-sicko` agent, then act on what it finds |
+| `/figure-it-out` | Design a bespoke, auditable playbook when no narrower one fits |
+| `/show-me-your-work` | Append-only TSV decision log for long or unattended runs |
+| `/recall` | Reconstruct what you were working on from your own chat history and the shared record |
+| `/reflect` | Three reviewers mine a session for durable lessons, then synthesize them into skill edits |
+| `/create-verification-skill` | Generate a project-local skill that drives your real app to prove behavior |
+| `/maintain-verification-skill` | Keep that verification skill and its feature map honest |
+| `/automate-me` | Mine your history and preferences into a personal `-mode` skill |
+| `/technical-writing` | Write docs, RFCs, readmes, and PR descriptions |
+| `/typescript-best-practices` | TypeScript patterns, with a longer reference file |
+| `/bro` | Restate the last message in plain language, no jargon |
+| `unslop` | Cut AI tells from any writing |
+
+## `ak` agents
+
+**comment-sicko.** A deranged comment-hater that `/no-comments` spawns. Feed it a diff and it
+hunts narration, banners, commented-out corpses, and workaround sermons. Legal headers, public
+API contracts, lint suppressions with a faulty rule, and constraint links survive.
 
 ## `ak` hooks
 
-**caveman.sh** — SessionStart hook that switches the caveman register on at the top of every session. It reads the rules straight out of `plugin/skills/caveman/SKILL.md`, so the skill file stays the single source of truth. Silent when `~/.claude/ak-caveman.state` contains `off` (written by `/caveman-off`). Dependency-free bash.
+**caveman.sh.** SessionStart hook that switches the caveman register on at the top of every session. It reads the rules straight out of `plugin/skills/caveman/SKILL.md`, so the skill file stays the single source of truth. Silent when `~/.claude/ak-caveman.state` contains `off` (written by `/caveman-off`). Dependency-free bash.
 
-**workflow-hints.sh** — PreToolUse hook that injects next-step context:
+**workflow-hints.sh.** PreToolUse hook that injects next-step context:
 - After `EnterPlanMode`: reminds to run `/replan` before exiting plan mode
 - After `/linus`: suggests `/triage`
 - After `/triage`: suggests `/verify`
-- After `/replan`: suggests `/plan-to-issues`
+- After `/replan`: suggests `/plan-to-issues` in plan mode, `/verify` in delivered mode
 
 ## Install
 
@@ -54,7 +86,6 @@ claude plugin install ak@ak-plugins
 claude plugin install mattpocock-skills@ak-plugins
 claude plugin install frontend-design@ak-plugins
 claude plugin install plugin-dev@ak-plugins
-claude plugin install hookify@ak-plugins
 ```
 
 ## Develop
@@ -78,7 +109,7 @@ For out-of-band bumps without committing right away:
 ./scripts/bump.sh patch    # or minor / major
 ```
 
-The hook cannot reliably read the in-progress commit message across `-m` and editor flows, so Conventional Commits subjects are not parsed — use `AK_BUMP=...` for non-patch bumps.
+The hook cannot reliably read the in-progress commit message across `-m` and editor flows, so Conventional Commits subjects are not parsed. Use `AK_BUMP=...` for non-patch bumps.
 
 **One-time setup after clone:**
 

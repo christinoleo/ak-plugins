@@ -1,5 +1,5 @@
 {
-  "description": "Workflow hints — injects next-step context based on tool/skill usage. Also auto-activates the caveman register at session start.",
+  "description": "Workflow hints that inject next-step context based on tool/skill usage. Also auto-activates the caveman register at session start.",
   "hooks": {
     "SessionStart": [
       {

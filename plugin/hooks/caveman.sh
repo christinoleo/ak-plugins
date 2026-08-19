@@ -6,7 +6,7 @@
 # the human to type /caveman.
 #
 # The rules are NOT duplicated here. This script reads them out of
-# skills/caveman/SKILL.md — the skill file stays the single source of truth, so
+# skills/caveman/SKILL.md. The skill file stays the single source of truth, so
 # editing the skill changes the always-on behaviour too.
 #
 # Off switch, in order of blast radius:
@@ -18,14 +18,14 @@
 #
 # Deliberately dependency-free: SessionStart takes plain stdout as context, so
 # there is no JSON to build and no jq to call. jq is not installed on every
-# machine this plugin lands on — see workflow-hints.sh, which needs it.
+# machine this plugin lands on. See workflow-hints.sh, which needs it.
 
 set -euo pipefail
 
 STATE_FILE="${HOME}/.claude/ak-caveman.state"
 SKILL_FILE="${CLAUDE_PLUGIN_ROOT:-}/skills/caveman/SKILL.md"
 
-# Persistently disabled — inject nothing.
+# Persistently disabled, so inject nothing.
 if [ -f "$STATE_FILE" ] && [ "$(tr -d '[:space:]' <"$STATE_FILE")" = "off" ]; then
   exit 0
 fi

@@ -6,53 +6,53 @@ description: |
   using Chrome DevTools. Run after implementation is complete.
 ---
 
-# Verify: Browser-Based Testing
+# Verify: browser-based testing
 
 Systematically verify that implemented changes work correctly AND haven't broken related
 functionality. Use the browser (Chrome DevTools MCP) to test everything visually.
 
-## Phase 1: Build the Checklist
+## Phase 1: build the checklist
 
 Analyze what was implemented by examining:
 
-1. **Git diff** — `git diff` and `git log` to see what files changed
-2. **Conversation history** — What features/fixes were implemented
-3. **GitHub issues** — If tracking with gh issues, check what was closed this session via `gh issue list --search 'closed:>=<date>'`
+1. **Git diff.** `git diff` and `git log` to see what files changed
+2. **Conversation history.** What features/fixes were implemented
+3. **GitHub issues.** If tracking with gh issues, check what was closed this session via `gh issue list --search 'closed:>=<date>'`
 
 From this, build two categories of test items:
 
-### Direct Changes (must pass)
+### Direct changes (must pass)
 Things that were explicitly changed or added:
 - New UI elements visible and functional
 - Modified behavior working as expected
 - Fixed bugs no longer reproducing
 - API endpoints returning correct data
 
-### Related Areas (regression check)
+### Related areas (regression check)
 Functionality connected to what changed:
 - Adjacent UI components still rendering correctly
 - Navigation flows that touch modified pages
 - Data that feeds into or out of modified components
 - Edge cases: empty states, error states, loading states
 
-### Checklist Format
+### Checklist format
 
 ```
 ## Verification Checklist
 
 ### Direct Changes
-- [ ] DC1: [Description] — [how to test]
-- [ ] DC2: [Description] — [how to test]
-- [ ] DC3: [Description] — [how to test]
+- [ ] DC1: [Description]. Test by [how]
+- [ ] DC2: [Description]. Test by [how]
+- [ ] DC3: [Description]. Test by [how]
 
 ### Related Areas
-- [ ] RA1: [Description] — [what to check]
-- [ ] RA2: [Description] — [what to check]
+- [ ] RA1: [Description]. Check [what]
+- [ ] RA2: [Description]. Check [what]
 
 Total: [N] items ([X] direct, [Y] related)
 ```
 
-## Phase 2: User Approval
+## Phase 2: user approval
 
 Present the checklist and ask:
 - "Anything missing from this list?"
@@ -61,13 +61,13 @@ Present the checklist and ask:
 
 Adjust the checklist based on feedback before proceeding.
 
-## Phase 3: Execute Tests
+## Phase 3: execute tests
 
 For each checklist item, using Chrome DevTools:
 
 1. **Navigate** to the relevant page
 2. **Take a snapshot** to understand the current state
-3. **Interact** — click, fill forms, navigate as needed to test the item
+3. **Interact.** click, fill forms, navigate as needed to test the item
 4. **Take a screenshot** if something looks wrong or noteworthy
 5. **Record result:**
 
@@ -79,16 +79,16 @@ For each checklist item, using Chrome DevTools:
 **Screenshot:** [if relevant]
 ```
 
-### Testing Strategy
+### Testing strategy
 
 - **Don't rush.** Take snapshots before and after actions
-- **Check visual state** — elements visible, correct text, proper styling
-- **Check interactions** — buttons work, forms submit, navigation flows
-- **Check data** — correct values displayed, updates persist
-- **Check edge cases** — empty lists, long text, missing data
-- **Check console** — note any errors or warnings (use list_console_messages)
+- **Check visual state.** elements visible, correct text, proper styling
+- **Check interactions.** buttons work, forms submit, navigation flows
+- **Check data.** correct values displayed, updates persist
+- **Check edge cases.** empty lists, long text, missing data
+- **Check console.** note any errors or warnings (use list_console_messages)
 
-## Phase 4: Results Report
+## Phase 4: results report
 
 After all items tested:
 
@@ -113,7 +113,7 @@ After all items tested:
 1. RA1: [what's off and whether it matters]
 ```
 
-## Phase 5: Handle Failures
+## Phase 5: handle failures
 
 For any ❌ or ⚠️ items:
 - Describe what went wrong clearly
@@ -130,4 +130,4 @@ If fixing now, apply fixes and re-test those specific items.
 - If the dev server isn't running, check and start it before testing
 - Don't test implementation details (internal state, console logs) unless relevant to a bug
 - If a page requires auth or specific state, ask the user how to set that up
-- Report failures factually. Don't apologize or hedge — state what's broken
+- Report failures factually. Don't apologize or hedge. State what's broken

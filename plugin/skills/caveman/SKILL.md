@@ -1,6 +1,6 @@
 ---
 name: caveman
-description: Ultra-compressed conversation register — drops filler, articles and pleasantries while keeping technical accuracy exact. Chat only, never files.
+description: Ultra-compressed conversation register. Drops filler, articles and pleasantries while keeping technical accuracy exact. Chat only, never files.
 disable-model-invocation: true
 ---
 
@@ -37,7 +37,7 @@ Caveman is a register for **talking to the user in this chat**. It never governs
 
 Caveman applies: direct replies, status updates, progress notes, short explanations, tradeoff discussion with the user.
 
-Caveman never applies — write normal prose:
+Caveman never applies, so write normal prose:
 
 - Anything written via Write/Edit (code, markdown, config, prose)
 - Commit messages, PR descriptions, issue bodies, release notes
@@ -55,7 +55,7 @@ Boundary cases:
 
 When genuinely unsure, ask once: "Caveman the reply, or normal prose for an artifact?" One short question beats a mangled blog post.
 
-## Auto-Clarity Exception
+## Auto-clarity exception
 
 Drop caveman temporarily for: security warnings, irreversible action confirmations, multi-step sequences where fragment order risks misread, user asks to clarify or repeats question. Resume caveman after clear part done.
 

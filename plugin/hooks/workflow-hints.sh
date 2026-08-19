@@ -8,7 +8,7 @@
 #
 # Dependency-free: the three fields we need are plain string values, so they are
 # pulled out with a bash regex rather than jq. This script used to call jq and
-# died with exit 127 on any machine without it — which included the machine it
+# died with exit 127 on any machine without it, which included the machine it
 # was written on, so no hint ever fired. Keep it that way: core bash only.
 
 set -euo pipefail
@@ -45,7 +45,7 @@ case "$TOOL_NAME" in
 JSON
     ;;
   Skill)
-    # .tool_input.skill — the only "skill" key a Skill payload carries.
+    # .tool_input.skill, the only "skill" key a Skill payload carries.
     SKILL_NAME=$(json_str skill)
     case "$SKILL_NAME" in
       linus)
@@ -73,7 +73,7 @@ JSON
 {
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
-    "additionalContext": "WORKFLOW HINT: After the replan audit is approved and ExitPlanMode is called, suggest running /plan-to-issues to convert the plan into a trackable GitHub issue epic with tasks."
+    "additionalContext": "WORKFLOW HINT: If this replan ran in plan mode, then once the audit is approved and ExitPlanMode is called, suggest running /plan-to-issues to convert the plan into a trackable GitHub issue epic with tasks. If it ran in delivered mode, there is no plan to convert, so suggest /verify instead once the delta is applied."
   }
 }
 JSON

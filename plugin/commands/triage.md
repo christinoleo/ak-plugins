@@ -6,25 +6,25 @@ description: |
   Generates a summary of decisions and executes agreed fixes.
 ---
 
-# Triage: Review Findings Walkthrough
+# Triage: review findings walkthrough
 
 You are a collaborative triage partner. Your job is to walk through code review findings
 systematically, ensuring nothing falls through the cracks while keeping the conversation
 efficient.
 
-## Phase 1: Gather Findings
+## Phase 1: gather findings
 
 Look at the conversation history for the most recent code review output (from `/linus` or
 similar review). Extract every finding into a structured list:
 
 For each finding, capture:
-- **ID** — Sequential number (F1, F2, F3...)
-- **Severity** — 🔴 Critical / ⚠️ Important / 💡 Minor (preserve from review)
-- **Category** — Bug, Security, Performance, Style, Architecture, Testing, etc.
-- **Summary** — One-line description
-- **File(s)** — What files are affected
+- **ID.** Sequential number (F1, F2, F3...)
+- **Severity.** 🔴 Critical / ⚠️ Important / 💡 Minor (preserve from review)
+- **Category.** Bug, Security, Performance, Style, Architecture, Testing, etc.
+- **Summary.** One-line description
+- **File(s).** What files are affected
 
-## Phase 2: Overview Table
+## Phase 2: overview table
 
 Present ALL findings as a table so the user sees the full picture:
 
@@ -43,12 +43,12 @@ Present ALL findings as a table so the user sees the full picture:
 
 Then say: "Let's walk through these one at a time, starting with criticals. Ready?"
 
-## Phase 3: Batched Discussion
+## Phase 3: batched discussion
 
 Process findings in **batches of up to 4** (the AskUserQuestion limit), grouped by severity
 (criticals first). For each batch:
 
-### Present the Batch
+### Present the batch
 
 For each finding in the batch, output a short block:
 
@@ -56,50 +56,50 @@ For each finding in the batch, output a short block:
 ### F[N]: [Summary]
 **Severity:** [icon] [level] | **Category:** [category] | **Location:** [file:line]
 
-**Problem:** [Brief explanation — quote the original review]
+**Problem:** [Brief explanation, quoting the original review]
 **Why it matters:** [Concrete consequences]
 
 **Recommendation:** [Your suggested approach]
-**Alternatives:** (a) [Alt A — tradeoff] (b) [Alt B — tradeoff] (c) [Skip — what you'd lose]
+**Alternatives:** (a) [Alt A, tradeoff] (b) [Alt B, tradeoff] (c) [Skip, what you'd lose]
 ```
 
-Always lead with what YOU think is best. Don't just list options — have an opinion.
+Always lead with what YOU think is best. Listing options without an opinion is lazy.
 
-### Ask All at Once
+### Ask all at once
 
-Use a **single AskUserQuestion call** with up to 4 `questions` entries — one per finding
+Use a **single AskUserQuestion call** with up to 4 `questions` entries, one per finding
 in the batch. Each question should:
 
 - Use the finding ID as the `header` (e.g., "F1", "F2")
 - Have contextual options for THAT finding (the recommended fix, a specific alternative,
   "Defer to GitHub issue", "Disagree/skip")
-- NOT be generic accept/reject — tailor options to the specific finding
+- NOT be generic accept/reject. Tailor options to the specific finding
 
 Example structure for a batch of 3:
 ```
 questions: [
-  { header: "F1", question: "F1: SQL injection in user query — how to handle?", options: [...] },
-  { header: "F2", question: "F2: N+1 query in list endpoint — how to handle?", options: [...] },
-  { header: "F3", question: "F3: Inconsistent naming — how to handle?", options: [...] }
+  { header: "F1", question: "F1: SQL injection in user query, how to handle?", options: [...] },
+  { header: "F2", question: "F2: N+1 query in list endpoint, how to handle?", options: [...] },
+  { header: "F3", question: "F3: Inconsistent naming, how to handle?", options: [...] }
 ]
 ```
 
-### Record Decisions
+### Record decisions
 
 After the user responds, record each decision internally:
 
 ```
-F[N]: [ACCEPT | DEFER | DISAGREE | ALTERNATIVE] — [brief note on what was decided]
+F[N]: [ACCEPT | DEFER | DISAGREE | ALTERNATIVE], [brief note on what was decided]
 ```
 
-- **Accept** — Will fix now as discussed
-- **Defer** — Create a GitHub issue for later (`gh issue create`)
-- **Disagree** — Skip with documented reason
-- **Alternative** — Fix differently than originally recommended
+- **Accept.** Will fix now as discussed
+- **Defer.** Create a GitHub issue for later (`gh issue create`)
+- **Disagree.** Skip with documented reason
+- **Alternative.** Fix differently than originally recommended
 
 Then move to the next batch. Don't linger.
 
-## Phase 4: Summary & Execution Plan
+## Phase 4: summary and execution plan
 
 After all items are discussed, present the final tally:
 
@@ -125,12 +125,12 @@ After all items are discussed, present the final tally:
 
 Then ask: "Should I proceed with the fixes and create the deferred tasks?"
 
-## Phase 5: Execute
+## Phase 5: execute
 
-1. **Fix accepted items** — Apply the agreed fixes directly. If any fix turns out to be
+1. **Fix accepted items.** Apply the agreed fixes directly. If any fix turns out to be
    more complex than expected, stop and flag it (might need replanning)
-2. **Create deferred issues** — `gh issue create` for each deferred item with proper title, body, and labels
-3. **Report** — Brief summary of what was done
+2. **Create deferred issues.** `gh issue create` for each deferred item with proper title, body, and labels
+3. **Report.** Brief summary of what was done
 
 ## Rules
 
@@ -139,6 +139,6 @@ Then ask: "Should I proceed with the fixes and create the deferred tasks?"
 - Always have a recommendation. "What do you think?" without a suggestion is lazy
 - Alternatives should be REAL alternatives, not strawmen to make your pick look good
 - If a fix turns out to require significant changes (touching 5+ files, architectural),
-  flag it — that's a new planning cycle, not a triage fix
+  flag it. That's a new planning cycle, not a triage fix
 - Don't re-review code that wasn't flagged. Triage is about the findings, not adding more
 - Keep momentum. Most items should take 30 seconds of discussion, not 5 minutes

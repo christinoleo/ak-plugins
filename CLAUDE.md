@@ -1,15 +1,15 @@
-# ak-plugins — Claude Code instructions
+# ak-plugins: Claude Code instructions
 
 Project-level guidance for Claude Code working in this repo.
 
 ## What this repo is
 
-A personal Claude Code plugin marketplace. The `ak-plugins` marketplace catalogs five plugins:
+A personal Claude Code plugin marketplace. The `ak-plugins` marketplace catalogs four plugins:
 
-- `ak` — our own dev workflow plugin (commands in `plugin/commands/`)
-- `mattpocock-skills` — fork-pulled from `christinoleo/skills` (upstream `mattpocock/skills`)
-- `frontend-design` — git-subdir from `anthropics/claude-plugins-official`
-- `plugin-dev` — git-subdir from `anthropics/claude-code`
+- `ak`, our own dev workflow plugin (commands in `plugin/commands/`, skills in `plugin/skills/`)
+- `mattpocock-skills`, fork-pulled from `christinoleo/skills` (upstream `mattpocock/skills`)
+- `frontend-design`, git-subdir from `anthropics/claude-plugins-official`
+- `plugin-dev`, git-subdir from `anthropics/claude-code`
 
 Three installation targets stay in sync: this machine (local), `distilo`, `engage` (both via SSH).
 
@@ -58,6 +58,20 @@ The marketplaces sometimes cache stale content in `~/.claude/plugins/marketplace
 ssh distilo 'bash -lc "cd ~/.claude/plugins/marketplaces/ak-plugins && git pull origin main"'
 ```
 
+### Vendored skills carry an attribution file
+
+`plugin/skills/` holds 40 skills vendored from pstack (MIT, Lauren Tan) alongside our own
+`caveman`, plus the `comment-sicko` agent in `plugin/agents/`. `plugin/skills/ATTRIBUTION.md` records what was taken, what was deliberately left
+behind, and every local change. Keep it accurate when you add, drop, or edit a vendored skill.
+`plugin/skills/LICENSE.pstack` must ship with them; MIT requires it.
+
+Upstream ships far more than we vendored. Before pulling anything else across, check the
+exclusion list in `ATTRIBUTION.md` for why it was left out.
+
+`show-me-your-work/scripts/log.sh` is the only executable we vendored. It was reviewed and
+hardened; `ATTRIBUTION.md` records what changed. Any further script coming across from
+upstream gets the same treatment before it lands.
+
 ### `ak` commands use GitHub Issues, not Beads
 
 The plugin used to depend on the `bd` (Beads) CLI; that was swapped out in v1.1.0 for the `gh issue` CLI. Epic/task structure now uses:
@@ -75,10 +89,10 @@ Do not reintroduce `bd` references when editing commands.
 
 ## Caveman scope (when active)
 
-The `caveman` skill lives at `plugin/skills/caveman/SKILL.md`. It is user-invoked only (`disable-model-invocation: true`) — the model cannot switch itself into the register.
+The `caveman` skill lives at `plugin/skills/caveman/SKILL.md`. It is user-invoked only (`disable-model-invocation: true`), so the model cannot switch itself into the register.
 
 It is nevertheless **on by default**: `plugin/hooks/caveman.sh` runs on `SessionStart` and injects the skill body as context. The hook reads `SKILL.md` rather than carrying its own copy of the rules, so edit the skill and the always-on behaviour follows. Three off switches, widening blast radius: saying "stop caveman" drops it for the session; `/caveman-off` writes `off` to `~/.claude/ak-caveman.state` and keeps it off in every future session; `/caveman-on` deletes that file to restore the default.
 
-Keep `caveman.sh` free of `jq` and other non-core binaries. `SessionStart` accepts plain stdout as context, so no JSON is needed — and jq is genuinely missing on some machines this plugin installs to.
+Keep `caveman.sh` free of `jq` and other non-core binaries. `SessionStart` accepts plain stdout as context, so no JSON is needed, and jq is genuinely missing on some machines this plugin installs to.
 
-If `caveman` mode is active in the session, it governs conversation only. **Never apply caveman register to files** in this repo — commands, command descriptions, README, plugin.json descriptions, and CLAUDE.md are all artifacts read by other people and other agents. Write them in normal prose regardless of conversation register.
+If `caveman` mode is active in the session, it governs conversation only. **Never apply caveman register to files** in this repo. Commands, command descriptions, README, plugin.json descriptions, and CLAUDE.md are all artifacts read by other people and other agents. Write them in normal prose regardless of conversation register.
