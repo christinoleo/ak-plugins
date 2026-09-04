@@ -54,3 +54,5 @@ If you are stuck after a real attempt, push what you have, open a draft PR, labe
    A PR with neither label merges without anyone looking at it again.
 9. Remove the worktree: `git worktree remove --force .worktree/<issue>`. Everything is pushed, so nothing is lost.
 10. `gh pr ready <pr>`. This is the signal: the daemon merges it or hands it to the integrator, and ends this session. Stop.
+
+A Stop hook enforces this: until the PR is ready or the issue is labelled `needs-help`, ending your turn puts you back to work with a reminder. After three such reminders it labels the issue `needs-help` for you.

@@ -17,6 +17,9 @@
 # lives in GitHub labels; nothing is messaged to Claude sessions. The master
 # polls needs-help on its own.
 #
+# Spawned sessions get MAESTRO_ROLE and MAESTRO_ISSUE or MAESTRO_PR in their
+# environment; hooks/maestro-stopgate.sh reads them to gate Stop.
+#
 # Dependencies: bash 4, git, gh (its built-in --jq, no jq needed), tmux, flock.
 
 set -euo pipefail
@@ -118,8 +121,12 @@ kill_win() {
 }
 
 spawn() {
-  local name=$1 skill=$2 arg=$3
-  local cmd="claude $CLAUDE_ARGS '/ak:$skill $arg'"
+  local name=$1 skill=$2 arg=$3 env
+  case "$skill" in
+    maestro-worker) env="MAESTRO_ROLE=worker MAESTRO_ISSUE=$arg" ;;
+    *) env="MAESTRO_ROLE=integrator MAESTRO_PR=$arg" ;;
+  esac
+  local cmd="env $env claude $CLAUDE_ARGS '/ak:$skill $arg'"
   log "spawn $name: $cmd"
   if [ "$DRY" = 0 ]; then
     tmux new-window -d -n "$name" -c "$REPO" "$cmd"

@@ -27,7 +27,7 @@ Personal Claude Code plugin marketplace. Dev workflow commands plus curated pick
 
 ## `ak` scripts
 
-`plugin/scripts/maestro-daemon.sh` is the dispatch and merge loop behind `/maestro`. It runs inside the master's tmux session, polls GitHub, claims `ready` issues, spawns one `claude` window per issue up to `--max-workers`, merges task PRs, spawns one integrator window at a time for PRs labelled `needs-browser` or `needs-migration`, and labels anything it cannot resolve `needs-help`. Run it with `--dry-run --once` to preview.
+`plugin/scripts/maestro-daemon.sh` is the dispatch and merge loop behind `/maestro`. It runs inside the master's tmux session, polls GitHub, claims `ready` issues, spawns one `claude` window per issue up to `--max-workers`, merges task PRs, spawns one integrator window at a time for PRs labelled `needs-browser` or `needs-migration`, and labels anything it cannot resolve `needs-help`. Run it with `--dry-run --once` to preview. Sessions it spawns carry `MAESTRO_ROLE`, and `plugin/hooks/maestro-stopgate.sh` blocks their Stop until the PR is in a terminal state, giving up with `needs-help` after three blocks.
 
 ## `ak` skills
 

@@ -41,3 +41,5 @@ gh pr edit <pr> --remove-label needs-browser --remove-label needs-migration
 ```
 
 Either way, finish with `git checkout main && git pull --ff-only` and stop.
+
+A Stop hook enforces the outcome: while the PR is open, not a draft, and still labelled `needs-browser` or `needs-migration`, ending your turn puts you back to work with a reminder. After three reminders it labels the PR `needs-help` for you.
