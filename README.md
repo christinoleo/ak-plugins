@@ -30,8 +30,8 @@ Personal Claude Code plugin marketplace. Dev workflow commands plus curated pick
 | Skill | Description |
 |-------|-------------|
 | `/maestro` | Turn the session into a master orchestrator: interview requirements, file them as issues, and drive workers through its own `/loop` or through an integrator session |
-| `/maestro-worker` | One worker task: branch from main, implement an issue, `/simplify`, open a PR with a `/handoff` body, report to the dispatcher |
-| `/maestro-integrator` | Operations loop: assign issues to workers, reset them between tasks, run `/code-review` and `/verify` on their PRs, fix what is local, merge or send back as a draft, report to the master |
+| `/maestro-worker` | One worker task: branch from main, implement an issue, lint and test, `/simplify` and `/code-review` as subagents, open a PR with a `/handoff` body, report to the dispatcher |
+| `/maestro-integrator` | Operations loop: assign issues to workers, reset them between tasks, run `/verify` in the browser on their PRs, fix what is local, merge or send back as a draft, report to the master |
 | `/caveman` | Ultra-compressed conversation register that drops filler while keeping technical accuracy. Chat only, never applies to files, commits, issues or anything published. **On by default**: the `SessionStart` hook activates it every session, so typing `/caveman` is only ever a re-assert. Say "stop caveman" to drop it for this session, or `/caveman-off` to stop it coming back. |
 
 ### Vendored engineering skills

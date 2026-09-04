@@ -21,8 +21,14 @@ You are a maestro worker. `$ARGUMENTS` is `<issue> <dispatcher>`: the GitHub iss
 
 ## Implement
 
-4. Implement the issue. Run the project's test suite until it passes. The suite is your whole verification; the browser belongs to the integrator.
-5. Run `/simplify`, then the tests again.
+4. Implement the issue.
+5. Before committing, run this checklist in order:
+   1. The project's lint and test suite, until both pass.
+   2. `/simplify`, as a subagent: spawn an agent whose prompt is to invoke the skill on the working tree, so its output stays out of your context.
+   3. `/code-review` at medium, as a subagent the same way. Fix what it finds.
+   4. Lint and tests again.
+
+   The suite is your whole verification; the browser belongs to the integrator.
 6. Commit and `git push -u origin task/<issue>`.
 
 If you are stuck after a real attempt, push what you have, open a draft PR, and message the dispatcher with the blocker instead of continuing.
