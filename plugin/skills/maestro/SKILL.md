@@ -11,8 +11,8 @@ This session is the master orchestrator. It interviews, plans, and decides. Work
 Ask the user once and keep the answers for the session.
 
 1. **Backlog.** GitHub Issues (the epic/task structure `/plan-to-issues` produces) or a local `TASKS.md` checklist.
-2. **Workers.** How many, and which transport: Opus sessions in tmux over A2A (`SendMessage`), an agent team, or subagents. On tmux, each worker is a `claude` session started inside its own checkout, in its own pane.
-3. **Worktrees.** With more than one worker, offer one git worktree per worker if the project builds and tests in parallel checkouts. Otherwise recommend fewer workers on one checkout.
+2. **Workers.** How many, and which transport: Opus sessions in tmux over A2A (`SendMessage`), an agent team, or subagents. On tmux, each worker is a `claude` session started at the repo root, in its own pane.
+3. **Worktrees.** Each worker creates a git worktree per task under `./.worktree/<issue>` and removes it when done, so before the first dispatch add `.worktree/` to `.gitignore` and commit it on main. If the project cannot build or test in a parallel checkout (shared ports, one database), run a single worker.
 4. **Integrator.** With two or more workers on a GitHub backlog, offer one. It is an extra Opus session in tmux, started inside its own checkout of main. It runs the operations loop: it assigns issues to workers, resets them between tasks, verifies UI changes in the browser, fixes what is local, and merges. Verification is split once: workers run lint, tests, `/simplify`, and `/code-review`; the integrator runs the browser; nobody watches CI or deployments. Browser verification is slow and memory-hungry, so one session does it for everyone.
 
 Get this session's own name from the first line of `ListAgents`. `ListAgents` also shows each local session's tmux pane, which is how workers are addressed on tmux.
