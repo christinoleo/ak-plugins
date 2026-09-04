@@ -31,24 +31,19 @@ Run `/loop`, self-paced. On each tick, in this order:
 
 When there are no ready issues, no in-progress issues, and no open task PRs, tell the master the backlog is drained and keep ticking at a long interval until new issues appear or the master says stop.
 
-## Gates
+## Integrate a PR
 
-Run them in order and stop at the first failure.
+One decision: does it need the browser?
 
-1. **Read.** `gh pr view <pr>` for the handoff and the Verify section. Note the issue number after `Closes`. Then:
-
-   ```bash
-   git fetch origin && gh pr checkout <pr> && git merge origin/main --no-edit
-   ```
-
-2. **Browser.** Only when the Verify section names something to look at. Start the dev server as it says, then run `/verify`. You are the approver its checklist asks for: approve it and continue with the URL from the PR. A failed or partial item fails the gate. Stop the server afterwards.
+1. **Read.** `gh pr view <pr>` for the handoff and the Verify section. Note the issue number after `Closes`.
+2. **Browser**, only when the Verify section names something to look at. `git fetch origin && gh pr checkout <pr>`, start the dev server as the PR says, then run `/verify`. You are the approver its checklist asks for: approve it and continue with the URL from the PR. Stop the server afterwards. A failed or partial item means the PR does not merge yet.
 3. **Merge.** `gh pr merge <pr> --squash --delete-branch`. Confirm with `gh issue view <issue>` that the issue is closed, and close it yourself if not. Then `git checkout main && git pull`.
 
 ## Fix or reject
 
-A failed gate is yours to fix when the fix is local: a merge conflict, or a broken screen with a visible cause. Fix it on the PR branch, commit, push, and rerun from gate 2.
+A merge conflict, or a broken screen with a visible cause, is yours to fix: fix it on the PR branch, commit, push, and go back to step 2.
 
-Reject when passing needs a different approach to the task, or when your second fix fails the same gate. Comment on the PR with `gh pr comment <pr>`: which gate failed, the exact output, and what would pass. Then `gh pr ready <pr> --undo` so the PR leaves your queue as a draft until a worker marks it ready again. Finish with `git checkout main`.
+Reject when passing needs a different approach to the task, or when your second fix fails the same way. Comment on the PR with `gh pr comment <pr>`: what failed, the exact output, and what would pass. Then `gh pr ready <pr> --undo` so the PR leaves your queue as a draft until a worker marks it ready again. Finish with `git checkout main`.
 
 ## Report
 
