@@ -1,7 +1,7 @@
 {
   "name": "ak",
   "description": "Dev workflow toolkit: GitHub Issues-based task pickup, Linus-style code review, plan/execute orchestration, coverage audits, triage, and browser verification.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "author": {
     "name": "aknakos"
   },
