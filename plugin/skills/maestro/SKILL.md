@@ -1,45 +1,59 @@
 ---
 name: maestro
-description: Make this session the master orchestrator. It interviews requirements, files them as tasks, and drives maestro-worker sessions, either through its own /loop or through a maestro-integrator session that runs the loop for it.
+description: Make this session the master orchestrator. It interviews requirements, files them as GitHub issues, and starts the maestro daemon, which spawns maestro-worker sessions per issue and merges or hands their PRs to a maestro-integrator session.
 disable-model-invocation: true
 ---
 
-This session is the master orchestrator. It interviews, plans, and decides. Workers implement through the `maestro-worker` skill. The integrator dispatches, tests, and merges through the `maestro-integrator` skill. Delegate every operational step to one of them, so this session spends its context on decisions only.
+This session is the master orchestrator. It interviews, plans, and decides. Everything operational runs elsewhere: the daemon dispatches and merges, workers implement through the `maestro-worker` skill, the integrator checks browsers and migrations through the `maestro-integrator` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.
 
 ## Setup
 
 Ask the user once and keep the answers for the session.
 
-1. **Backlog.** GitHub Issues (the epic/task structure `/plan-to-issues` produces) or a local `TASKS.md` checklist.
-2. **Workers.** How many, and which transport: Opus sessions in tmux over A2A (`SendMessage`), an agent team, or subagents. On tmux, each worker is a `claude` session started at the repo root, in its own pane.
-3. **Worktrees.** Each worker creates a git worktree per task under `./.worktree/<issue>` and removes it when done, so before the first dispatch add `.worktree/` to `.gitignore` and commit it on main. If the project cannot build or test in a parallel checkout (shared ports, one database), run a single worker.
-4. **Integrator.** With two or more workers on a GitHub backlog, offer one. It is an extra Opus session in tmux, started inside its own checkout of main. It runs the operations loop: it assigns issues to workers, resets them between tasks, verifies UI changes in the browser, fixes what is local, and merges. Verification is split once: workers run lint, tests, `/simplify`, and `/code-review`; the integrator runs the browser; nobody watches CI or deployments. Browser verification is slow and memory-hungry, so one session does it for everyone.
+1. **Workers.** How many at once. Each is a fresh `claude` session in its own tmux window, started by the daemon with `--dangerously-skip-permissions` and `--model opus`, and killed once its PR is open. One session per task keeps every worker's context clean without a `/clear`.
+2. **Integrator.** Always on with the daemon: one session at a time, spawned only for PRs labelled `needs-browser` or `needs-migration`. Every other PR the daemon merges itself. Browser verification is slow and memory-hungry, so it never runs in parallel.
+3. **Parallel checkouts.** Workers build and test in `./.worktree/<issue>`. The integrator uses the root checkout and keeps its main current; nothing else pulls there. If the project cannot run two copies at once (shared ports, one database), set workers to one.
 
-Get this session's own name from the first line of `ListAgents`. `ListAgents` also shows each local session's tmux pane, which is how workers are addressed on tmux.
+Then prepare the repo:
+
+- Add `.worktree/` to `.gitignore` and commit it on main. The daemon keeps its state there too.
+- Start the daemon in this tmux session. It lives in the plugin at `scripts/maestro-daemon.sh`, two directories up from this skill's base directory:
+
+  ```bash
+  tmux new-window -d -n maestro-daemon "bash <plugin-root>/scripts/maestro-daemon.sh --max-workers <N>"
+  ```
+
+  It creates the labels it needs, polls GitHub every 30 seconds, and logs to `.worktree/.maestro/daemon.log`. Pass `--dry-run --once` first to see what it would do.
 
 ## Intake
 
-Run every requirement through the installed skills. `grilling` stress-tests the idea. `research` and `domain-modeling` fill gaps. `/replan` checks coverage. Then file the tasks with `/plan-to-issues` on a GitHub backlog, or append them to `TASKS.md` on a local one.
+Run every requirement through the installed skills. `grilling` stress-tests the idea. `research` and `domain-modeling` fill gaps. `/replan` checks coverage. Then file the tasks with `/plan-to-issues`. The daemon starts a worker for each issue labelled `ready` as soon as a slot is free, and moves blocked issues to `ready` when their `Blocked by #N` lines all close.
 
-Architecture is intake too. At the start of an engagement, and again after a batch of tasks has merged, run `improve-codebase-architecture` (after `domain-modeling` when the project has no `CONTEXT.md`). It surfaces deepening opportunities and grills the user through the ones they pick. The picks become issues like any other requirement, and workers implement them.
+Architecture is intake too. At the start of an engagement, and again after a batch of tasks has merged, run `improve-codebase-architecture` (after `domain-modeling` when the project has no `CONTEXT.md`). It surfaces deepening opportunities and grills the user through the ones they pick. The picks become issues like any other requirement.
 
-## With an integrator
+## Labels
 
-Invoke it once and do not loop:
+| label | on | meaning |
+|---|---|---|
+| `ready` | issue | no blockers, daemon may claim it |
+| `in-progress` | issue | a worker owns it |
+| `needs-browser` | PR | integrator must verify it in the browser |
+| `needs-migration` | PR | integrator must check the database migration |
+| `needs-help` | issue or PR | automation gave up; a human or this session decides |
+
+## While it runs
+
+Run `/loop` at a slow pace, fifteen minutes or so. Each tick:
 
 ```bash
-tmux send-keys -t <integrator-pane> '/maestro-integrator <master> <worker-pane> <worker-pane> ...' Enter
+gh issue list --label needs-help --state open
+gh pr list --label needs-help --state open
 ```
 
-From then on this session reacts. New input from the user goes through Intake and lands in the backlog, where the integrator picks it up. A worker blocker forwarded by the integrator is a decision: resolve it or take it to the user, then reply to the integrator. Merge and rejection reports need no action. When the integrator reports the backlog drained and the user has nothing pending, message it to stop.
+Each hit carries a comment saying what failed: a worker that stalled, a merge conflict, a rejected browser check. Resolve it or take it to the user, then remove `needs-help` and put the issue back to `ready`, or fix the PR and remove the label so the daemon merges it. New input from the user goes through Intake while the loop keeps running.
 
-## Without an integrator
+Stop when there are no open task issues or task PRs and the user has nothing pending: kill the `maestro-daemon` window.
 
-Run `/loop`, self-paced. A worker runs one task per invocation and stops, so this loop drives everything. On each tick:
+## Without tmux
 
-1. **Assign** the next ready task to an idle worker. On tmux, run `tmux send-keys -t <pane> '/maestro-worker <issue> <master>' Enter`, then `SendMessage` to the worker with `notify_when_idle: true` and no message, so a silent stop still reaches you. On a subagent or team transport, read `${CLAUDE_PLUGIN_ROOT}/skills/maestro-worker/SKILL.md` and put its body in the prompt with the same two arguments. On a local backlog, replace the issue number with the task text and its `TASKS.md` line.
-2. **Check** the running workers. A worker's report arrives as a `SendMessage` whose first line names its PR or its blocker. A blocker is a decision: resolve it or take it to the user, then reassign.
-3. **Integrate.** Review and merge the PR and close the issue. On a local backlog, commit the task and check its item off.
-4. **Reset** a worker before its next task. On tmux, once the idle notice has arrived, run `tmux send-keys -t <pane> '/clear' Enter`, then list again and find the session by pane, since `/clear` starts a new session under a possibly new name. `SendMessage` delivers text as context rather than keystrokes, so a `/clear` or a skill invocation sent that way is read as a message and does nothing.
-
-New input from the user between ticks goes through Intake while the loop keeps running. Stop the loop when the backlog is empty and the user has nothing pending.
+On a subagent or agent-team transport there is no daemon. Run `/loop` yourself: read `<plugin-root>/skills/maestro-worker/SKILL.md` and put its body in each worker's prompt with the issue number, merge each PR yourself, and reset nothing, since every subagent starts empty.

@@ -20,7 +20,7 @@ gh issue view $ARGUMENTS
 
 If no argument provided, find the next ready issue:
 ```bash
-gh issue list --label ready --state open --sort created
+gh issue list --label ready --state open --search "sort:created-asc"
 ```
 Pick the first (oldest, highest priority) issue from the ready list. Run `gh issue view <id>` on it.
 
