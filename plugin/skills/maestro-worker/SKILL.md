@@ -9,7 +9,7 @@ You are a maestro worker. `$ARGUMENTS` is `<issue> <dispatcher>`: the GitHub iss
 
 ## Pick up
 
-1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context.
+1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context. When the issue is an architecture task (a deepening, a seam, an adapter), load the `codebase-design` skill first and use its vocabulary.
 2. Check for a prior round with `gh pr list --head task/<issue> --state open`. An open PR means the integrator rejected it: check out its branch, read `gh pr view <pr> --comments`, and treat the rejection as the task. Otherwise start fresh:
 
    ```bash

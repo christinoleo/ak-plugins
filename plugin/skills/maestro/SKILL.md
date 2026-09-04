@@ -21,6 +21,8 @@ Get this session's own name from the first line of `ListAgents`. `ListAgents` al
 
 Run every requirement through the installed skills. `grilling` stress-tests the idea. `research` and `domain-modeling` fill gaps. `/replan` checks coverage. Then file the tasks with `/plan-to-issues` on a GitHub backlog, or append them to `TASKS.md` on a local one.
 
+Architecture is intake too. At the start of an engagement, and again after a batch of tasks has merged, run `improve-codebase-architecture` (after `domain-modeling` when the project has no `CONTEXT.md`). It surfaces deepening opportunities and grills the user through the ones they pick. The picks become issues like any other requirement, and workers implement them.
+
 ## With an integrator
 
 Invoke it once and do not loop:
