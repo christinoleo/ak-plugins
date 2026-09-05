@@ -3,7 +3,8 @@
 #
 # Runs inside the master's tmux session. Every tick it:
 #   1. reaps worker windows whose PR is open or whose issue is closed or stuck
-#   2. flags workers that ran past --stale as needs-help
+#   2. optionally warns (label + comment, never a kill) when a worker or
+#      integrator has run past --stale; off by default
 #   3. claims ready issues (ready -> in-progress) and spawns one claude
 #      worker window per issue, up to --max-workers
 #   4. merges task PRs that need no human-shaped check, and spawns one
@@ -26,7 +27,7 @@ set -euo pipefail
 
 MAX_WORKERS=2
 INTERVAL=30
-STALE=7200
+STALE=0
 REPO=""
 ONCE=0
 DRY=0
@@ -38,7 +39,8 @@ usage: maestro-daemon.sh [options]
 
   --max-workers N      concurrent worker windows (default $MAX_WORKERS)
   --interval SECONDS   poll interval (default $INTERVAL)
-  --stale SECONDS      kill a worker running longer than this (default $STALE)
+  --stale SECONDS      warn with needs-help when a session runs longer than this;
+                       never kills it or touches its worktree (default off)
   --repo DIR           repo root (default: git toplevel of cwd)
   --claude-args "..."  flags for every spawned claude (default "$CLAUDE_ARGS")
   --once               run one tick and exit
@@ -110,7 +112,7 @@ windows_with_prefix() { tmux list-windows -F '#W' | grep "^$1" || true; }
 kill_win() {
   local name=$1 wt
   win_exists "$name" && run tmux kill-window -t "=$name"
-  rm -f "$STATE/$name.start"
+  rm -f "$STATE/$name.start" "$STATE/$name.warned"
   case "$name" in
     mw-*) wt="$REPO/.worktree/${name#mw-}"
           [ -d "$wt" ] && run git -C "$REPO" worktree remove --force "$wt" ;;
@@ -163,17 +165,31 @@ reap_workers() {
     if [ "$state" != OPEN ]; then
       log "reap $w: issue $state"; kill_win "$w"; continue
     fi
-    if issue_has_label "$issue" needs-help; then
+    if [ ! -f "$STATE/$w.warned" ] && issue_has_label "$issue" needs-help; then
       log "reap $w: issue needs-help"; kill_win "$w"; continue
     fi
     if [ -n "$pr" ] && [ "$(gh pr view "$pr" --json isDraft --jq .isDraft)" = false ]; then
       log "reap $w: PR #$pr open"; kill_win "$w"; continue
     fi
-    if [ "$(win_age "$w")" -gt "$STALE" ]; then
-      needs_help issue "$issue" "worker ran longer than ${STALE}s without opening a PR."
-      kill_win "$w"
-    fi
+    warn_stale "$w" issue "$issue" "worker has run longer than ${STALE}s without opening a PR; it is still running."
   done
+}
+
+# Warn once per window, and only when --stale is set. The window keeps running.
+warn_stale() {
+  local w=$1 kind=$2 num=$3 why=$4
+  [ "$STALE" -gt 0 ] || return 0
+  [ -f "$STATE/$w.warned" ] && return 0
+  [ "$(win_age "$w")" -gt "$STALE" ] || return 0
+  touch "$STATE/$w.warned"
+  log "stale $kind #$num: $why"
+  if [ "$kind" = issue ]; then
+    run gh issue edit "$num" --add-label needs-help
+    run gh issue comment "$num" --body "maestro-daemon: $why"
+  else
+    run gh pr edit "$num" --add-label needs-help
+    run gh pr comment "$num" --body "maestro-daemon: $why"
+  fi
 }
 
 reap_integrators() {
@@ -185,13 +201,10 @@ reap_integrators() {
     if [ "$state" != OPEN ] || [ "$draft" = true ]; then
       log "reap $w: PR $state draft=$draft"; kill_win "$w"; continue
     fi
-    if gh pr view "$pr" --json labels --jq '.labels[].name' | grep -x needs-help >/dev/null; then
+    if [ ! -f "$STATE/$w.warned" ] && gh pr view "$pr" --json labels --jq '.labels[].name' | grep -x needs-help >/dev/null; then
       log "reap $w: PR needs-help"; kill_win "$w"; continue
     fi
-    if [ "$(win_age "$w")" -gt "$STALE" ]; then
-      needs_help pr "$pr" "integrator ran longer than ${STALE}s."
-      kill_win "$w"
-    fi
+    warn_stale "$w" pr "$pr" "integrator has run longer than ${STALE}s; it is still running."
   done
 }
 
