@@ -2,7 +2,10 @@
 # Maestro daemon: deterministic dispatch and merge loop for the maestro skill.
 #
 # Runs inside the master's tmux session. Every tick it:
-#   1. reaps worker windows whose PR is open or whose issue is closed or stuck
+#   1. reaps worker windows whose PR is ready or whose issue is closed, and
+#      integrator windows whose PR is merged, closed, or back to draft. Those
+#      are the sessions' own "done" signals. Nothing else closes a window: a
+#      needs-help session stays open so a human can look at it.
 #   2. optionally warns (label + comment, never a kill) when a worker or
 #      integrator has run past --stale; off by default
 #   3. claims ready issues (ready -> in-progress) and spawns one claude
@@ -14,7 +17,8 @@
 #   5. after a merge, marks issues whose "Blocked by #N" lines are all
 #      closed as ready
 #
-# Anything it cannot resolve gets the needs-help label and a comment. All state
+# Anything it cannot resolve gets the needs-help label and a comment, and is
+# otherwise left alone. All state
 # lives in GitHub labels; nothing is messaged to Claude sessions. The master
 # polls needs-help on its own.
 #
@@ -165,9 +169,6 @@ reap_workers() {
     if [ "$state" != OPEN ]; then
       log "reap $w: issue $state"; kill_win "$w"; continue
     fi
-    if [ ! -f "$STATE/$w.warned" ] && issue_has_label "$issue" needs-help; then
-      log "reap $w: issue needs-help"; kill_win "$w"; continue
-    fi
     if [ -n "$pr" ] && [ "$(gh pr view "$pr" --json isDraft --jq .isDraft)" = false ]; then
       log "reap $w: PR #$pr open"; kill_win "$w"; continue
     fi
@@ -200,9 +201,6 @@ reap_integrators() {
     draft=${state#* }; state=${state% *}
     if [ "$state" != OPEN ] || [ "$draft" = true ]; then
       log "reap $w: PR $state draft=$draft"; kill_win "$w"; continue
-    fi
-    if [ ! -f "$STATE/$w.warned" ] && gh pr view "$pr" --json labels --jq '.labels[].name' | grep -x needs-help >/dev/null; then
-      log "reap $w: PR needs-help"; kill_win "$w"; continue
     fi
     warn_stale "$w" pr "$pr" "integrator has run longer than ${STALE}s; it is still running."
   done

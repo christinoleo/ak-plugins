@@ -50,7 +50,7 @@ gh issue list --label needs-help --state open
 gh pr list --label needs-help --state open
 ```
 
-Each hit carries a comment saying what failed: a worker that stalled, a merge conflict, a rejected browser check. Resolve it or take it to the user, then remove `needs-help` and put the issue back to `ready`, or fix the PR and remove the label so the daemon merges it. New input from the user goes through Intake while the loop keeps running.
+Each hit carries a comment saying what failed: a worker that gave up, a merge conflict, a rejected browser check. The daemon never closes a session over it, so the worker's or integrator's window is still there to read. Resolve it or take it to the user, then remove `needs-help` and put the issue back to `ready`, or fix the PR and remove the label so the daemon merges it. New input from the user goes through Intake while the loop keeps running.
 
 Stop when there are no open task issues or task PRs and the user has nothing pending: kill the `maestro-daemon` window.
 
