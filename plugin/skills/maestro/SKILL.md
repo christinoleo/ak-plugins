@@ -4,13 +4,13 @@ description: Make this session the master orchestrator. It interviews requiremen
 disable-model-invocation: true
 ---
 
-This session is the master orchestrator. It interviews, plans, and decides. Everything operational runs elsewhere: the daemon dispatches, workers implement and merge through the `maestro-worker` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.
+This session is the master orchestrator. It interviews, plans, and decides. The daemon dispatches. Workers implement and merge through the `maestro-worker` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.
 
 ## Setup
 
 Ask the user once and keep the answers for the session.
 
-1. **Workers.** How many at once. Each is a fresh `claude` session in its own tmux window, started by the daemon with `--dangerously-skip-permissions` and `--model opus`, and killed once its issue is closed. One session per task keeps every worker's context clean.
+1. **Workers.** How many at once. The daemon starts each one as a fresh `claude` session in its own tmux window, with `--dangerously-skip-permissions` and `--model opus`, and kills it once its issue is closed. One session per task keeps every worker's context clean.
 2. **Parallel checkouts.** Workers build, test, and run dev servers in `./.worktree/<issue>`. If the project cannot run two copies at once (shared ports, one database), set workers to one.
 
 Then prepare the repo:
@@ -22,7 +22,7 @@ Then prepare the repo:
   tmux new-window -d -n maestro-daemon "bash <plugin-root>/scripts/maestro-daemon.sh --max-workers <N>"
   ```
 
-  It creates the labels it needs, polls GitHub every 30 seconds, and logs to `.worktree/.maestro/daemon.log`. Pass `--dry-run --once` first to see what it would do. Sessions it spawns carry `MAESTRO_ROLE` in their environment, which the plugin's Stop hook uses to keep a worker working until its issue is closed or it has asked for help.
+  It creates the labels it needs, polls GitHub every 30 seconds, and logs to `.worktree/.maestro/daemon.log`. Pass `--dry-run --once` first to see what it would do. Sessions it spawns carry `MAESTRO_ROLE` in their environment. The plugin's Stop hook reads it and keeps a worker working until its issue is closed or it has asked for help.
 
 ## Intake
 
@@ -36,7 +36,7 @@ Stress-test each requirement with `grilling`, then file the tasks with `/plan-to
 | `in-progress` | a worker owns it |
 | `needs-help` | the worker wants a decision from this session or the user |
 
-Workers merge their own PRs. They stop and label `needs-help` instead when the change carries a database migration, when a rebase would risk dropping someone else's work, or when they are stuck. Nobody re-verifies a merged PR; when something on main turns out broken, file an issue and it becomes a task like any other.
+Workers merge their own PRs. They stop and label `needs-help` instead when the change carries a database migration, when a rebase would risk dropping someone else's work, or when they are stuck. Nobody re-verifies a merged PR. When something on main turns out broken, file an issue and it becomes a task like any other.
 
 ## While it runs
 
@@ -48,7 +48,7 @@ gh issue list --label needs-help --state open
 
 Each hit carries a comment saying what the worker needs. The daemon never closes a session over it, so the worker's window is still there to read. Decide, or take it to the user. Then either finish the task yourself (merge the PR, close the issue) or remove `needs-help` and put the issue back to `ready` so a fresh worker picks it up with your comment. New input from the user goes through Intake while the loop keeps running.
 
-Stop when there are no open task issues and the user has nothing pending: kill the `maestro-daemon` window.
+Once there are no open task issues and the user has nothing pending, kill the `maestro-daemon` window.
 
 ## Without tmux
 

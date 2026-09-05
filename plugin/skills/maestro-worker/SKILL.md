@@ -5,12 +5,12 @@ disable-model-invocation: true
 argument-hint: "<issue>"
 ---
 
-You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you own it end to end: implement, verify, open the PR, merge it. The daemon that started you reads GitHub, not this terminal. Once the issue is closed it removes your worktree and ends this session. Your session sits at the repo root; the work happens in a worktree under `.worktree/<issue>`, which is gitignored.
+You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you own it end to end. You implement it, verify it, open the PR, and merge it. The daemon that started you reads GitHub, not this terminal. Once the issue is closed it removes your worktree and ends this session. Your session sits at the repo root. The work happens in a worktree under `.worktree/<issue>`, which is gitignored.
 
 ## Pick up
 
 1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context.
-2. Create the worktree. If `origin/task/<issue>` already exists, a previous round left work behind: start from it instead of `origin/main` and read `gh pr view task/<issue> --comments` for what went wrong.
+2. Create the worktree. If `origin/task/<issue>` already exists, a previous round left work behind. Start from it instead of `origin/main` and read `gh pr view task/<issue> --comments` for what went wrong.
 
    ```bash
    git fetch origin && git worktree add -b task/<issue> .worktree/<issue> origin/main
@@ -32,7 +32,7 @@ You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you
 
 ## Merge
 
-7. Bring the branch up to date: `git fetch origin && git rebase origin/main`. Resolve conflicts when the resolution is obvious, rerun the tests, and force-push with `--force-with-lease`. When a conflict touches logic you do not understand, or resolving it would drop someone else's change, stop rebasing and ask for help.
+7. Bring the branch up to date with `git fetch origin && git rebase origin/main`. Resolve conflicts when the resolution is obvious, rerun the tests, and force-push with `--force-with-lease`. When a conflict touches logic you do not understand, or resolving it would drop someone else's change, stop rebasing and ask for help.
 8. Open the PR and merge it:
 
    ```bash
@@ -44,7 +44,7 @@ You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you
 
 ## Ask for help
 
-Some things the master decides, not you. Before merging, ask for help when the change adds or edits a database migration, when the rebase in step 7 is not safe, or when you are stuck after a real attempt. Push what you have, open the PR if there is one, and hand over:
+Some things the master decides, not you. Ask for help instead of merging when the change adds or edits a database migration, when the rebase in step 7 is not safe, or when you are stuck after a real attempt. Push what you have, open the PR if there is one, and hand over:
 
 ```bash
 gh issue edit <issue> --add-label needs-help
