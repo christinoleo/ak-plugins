@@ -10,7 +10,7 @@ This session is the master orchestrator. It interviews, plans, and decides. The 
 
 Ask the user once and keep the answers for the session.
 
-1. **Workers.** How many at once. The daemon starts each one as a fresh `claude` session in its own tmux window, with `--dangerously-skip-permissions` and `--model opus`, and kills it once its issue is closed. One session per task keeps every worker's context clean.
+1. **Workers.** How many at once. The daemon starts each one as a fresh `claude` session in its own tmux window, named `mw-<issue>-<title>`, with `--dangerously-skip-permissions` and `--model opus`, and kills it once its issue is closed. One session per task keeps every worker's context clean.
 2. **Parallel checkouts.** Workers build, test, and run dev servers in `./.worktree/<issue>`. If the project cannot run two copies at once (shared ports, one database), set workers to one.
 
 Then prepare the repo:

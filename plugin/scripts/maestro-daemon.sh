@@ -93,30 +93,38 @@ issue_state() { gh issue view "$1" --json state --jq .state 2>/dev/null || echo 
 
 # ---- tmux helpers -----------------------------------------------------------
 
-win_exists() { tmux list-windows -F '#W' | grep -x "$1" >/dev/null; }
-worker_windows() { tmux list-windows -F '#W' | grep '^mw-' || true; }
+# Worker windows are named mw-<issue>-<slug of the issue title>, so the tmux
+# status bar says what each one is doing. Only the number is load-bearing.
+win_name() { tmux list-windows -F '#W' | grep -m1 "^mw-$1\(-\|\$\)" || true; }
+win_exists() { [ -n "$(win_name "$1")" ]; }
+worker_issues() { tmux list-windows -F '#W' | sed -n 's/^mw-\([0-9]*\).*/\1/p'; }
+
+slug() { tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]\+/-/g; s/^-//; s/-$//' | cut -c1-30 | sed 's/-$//'; }
 
 kill_win() {
-  local name=$1 issue=${1#mw-} wt="$REPO/.worktree/${1#mw-}"
-  win_exists "$name" && run tmux kill-window -t "=$name"
-  rm -f "$STATE/$name.start" "$STATE/$name.warned" "$STATE/retry-$issue"
+  local issue=$1 name wt="$REPO/.worktree/$1"
+  name=$(win_name "$issue")
+  [ -n "$name" ] && run tmux kill-window -t "=$name"
+  rm -f "$STATE/mw-$issue.start" "$STATE/mw-$issue.warned" "$STATE/retry-$issue"
   [ -d "$wt" ] && run git -C "$REPO" worktree remove --force "$wt"
   run git -C "$REPO" branch -D "task/$issue" >/dev/null 2>&1 || true
   return 0
 }
 
 spawn() {
-  local issue=$1 name="mw-$1"
+  local issue=$1 title name
+  title=$(gh issue view "$issue" --json title --jq .title 2>/dev/null | slug)
+  name="mw-$issue${title:+-$title}"
   local cmd="env MAESTRO_ROLE=worker MAESTRO_ISSUE=$issue claude $CLAUDE_ARGS '/ak:maestro-worker $issue'"
   log "spawn $name: $cmd"
   if [ "$DRY" = 0 ]; then
     tmux new-window -d -n "$name" -c "$REPO" "$cmd"
-    now >"$STATE/$name.start"
+    now >"$STATE/mw-$issue.start"
   fi
 }
 
 win_age() {
-  local f="$STATE/$1.start"
+  local f="$STATE/mw-$1.start"
   [ -f "$f" ] || { echo 0; return; }
   echo $(( $(now) - $(cat "$f") ))
 }
@@ -131,24 +139,23 @@ needs_help() {
 # ---- tick phases ------------------------------------------------------------
 
 reap_workers() {
-  local w issue state
-  for w in $(worker_windows); do
-    issue=${w#mw-}
+  local issue state
+  for issue in $(worker_issues); do
     state=$(issue_state "$issue")
     if [ "$state" != OPEN ]; then
-      log "reap $w: issue $state"; kill_win "$w"; continue
+      log "reap #$issue: issue $state"; kill_win "$issue"; continue
     fi
-    warn_stale "$w" "$issue"
+    warn_stale "$issue"
   done
 }
 
 # Warn once per window, and only when --stale is set. The window keeps running.
 warn_stale() {
-  local w=$1 issue=$2
+  local issue=$1
   [ "$STALE" -gt 0 ] || return 0
-  [ -f "$STATE/$w.warned" ] && return 0
-  [ "$(win_age "$w")" -gt "$STALE" ] || return 0
-  touch "$STATE/$w.warned"
+  [ -f "$STATE/mw-$issue.warned" ] && return 0
+  [ "$(win_age "$issue")" -gt "$STALE" ] || return 0
+  touch "$STATE/mw-$issue.warned"
   log "stale #$issue: worker has run longer than ${STALE}s; it is still running."
   run gh issue edit "$issue" --add-label needs-help
   run gh issue comment "$issue" --body "maestro-daemon: worker has run longer than ${STALE}s without closing the issue; it is still running."
@@ -159,7 +166,7 @@ warn_stale() {
 requeue_orphans() {
   local issue retry
   for issue in $(gh issue list --label in-progress --state open --limit 50 --json number --jq '.[].number'); do
-    win_exists "mw-$issue" && continue
+    win_exists "$issue" && continue
     retry="$STATE/retry-$issue"
     if [ -f "$retry" ]; then
       needs_help "$issue" "worker disappeared twice without finishing."
@@ -195,7 +202,7 @@ unblock_dependents() {
 
 dispatch() {
   local running issue
-  running=$(worker_windows | wc -l)
+  running=$(worker_issues | wc -l)
   for issue in $(ready_issues); do
     [ "$running" -lt "$MAX_WORKERS" ] || break
     log "claim #$issue"
