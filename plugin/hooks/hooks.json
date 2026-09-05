@@ -1,5 +1,5 @@
 {
-  "description": "Workflow hints that inject next-step context based on tool/skill usage. Auto-activates the caveman register at session start. Gates Stop in maestro worker and integrator sessions.",
+  "description": "Workflow hints that inject next-step context based on tool/skill usage. Auto-activates the caveman register at session start. Gates Stop in maestro worker sessions.",
   "hooks": {
     "SessionStart": [
       {

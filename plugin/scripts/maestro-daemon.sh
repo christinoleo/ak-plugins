@@ -1,28 +1,22 @@
 #!/usr/bin/env bash
-# Maestro daemon: deterministic dispatch and merge loop for the maestro skill.
+# Maestro daemon: deterministic dispatch loop for the maestro skill.
 #
 # Runs inside the master's tmux session. Every tick it:
-#   1. reaps worker windows whose PR is ready or whose issue is closed, and
-#      integrator windows whose PR is merged, closed, or back to draft. Those
-#      are the sessions' own "done" signals. Nothing else closes a window: a
-#      needs-help session stays open so a human can look at it.
-#   2. optionally warns (label + comment, never a kill) when a worker or
-#      integrator has run past --stale; off by default
-#   3. claims ready issues (ready -> in-progress) and spawns one claude
+#   1. reaps worker windows whose issue is closed. That is the worker's own
+#      "done" signal: it merges its PR itself, and the merge closes the issue.
+#      Nothing else closes a window: a needs-help session stays open so a
+#      human can look at it.
+#   2. optionally warns (label + comment, never a kill) when a worker has run
+#      past --stale; off by default
+#   3. requeues in-progress issues whose worker window vanished, once
+#   4. marks issues whose "Blocked by #N" lines are all closed as ready
+#   5. claims ready issues (ready -> in-progress) and spawns one claude
 #      worker window per issue, up to --max-workers
-#   4. merges task PRs that need no human-shaped check, and spawns one
-#      integrator window at a time for PRs labelled needs-browser or
-#      needs-migration (the integrator works in the root checkout; workers
-#      use worktrees under .worktree/)
-#   5. after a merge, marks issues whose "Blocked by #N" lines are all
-#      closed as ready
 #
-# Anything it cannot resolve gets the needs-help label and a comment, and is
-# otherwise left alone. All state
-# lives in GitHub labels; nothing is messaged to Claude sessions. The master
-# polls needs-help on its own.
+# All state lives in GitHub labels; nothing is messaged to Claude sessions.
+# Workers label needs-help when they want a decision; the master polls it.
 #
-# Spawned sessions get MAESTRO_ROLE and MAESTRO_ISSUE or MAESTRO_PR in their
+# Spawned sessions get MAESTRO_ROLE=worker and MAESTRO_ISSUE in their
 # environment; hooks/maestro-stopgate.sh reads them to gate Stop.
 #
 # Dependencies: bash 4, git, gh (its built-in --jq, no jq needed), tmux, flock.
@@ -43,12 +37,12 @@ usage: maestro-daemon.sh [options]
 
   --max-workers N      concurrent worker windows (default $MAX_WORKERS)
   --interval SECONDS   poll interval (default $INTERVAL)
-  --stale SECONDS      warn with needs-help when a session runs longer than this;
+  --stale SECONDS      warn with needs-help when a worker runs longer than this;
                        never kills it or touches its worktree (default off)
   --repo DIR           repo root (default: git toplevel of cwd)
   --claude-args "..."  flags for every spawned claude (default "$CLAUDE_ARGS")
   --once               run one tick and exit
-  --dry-run            print actions without labelling, merging, or spawning
+  --dry-run            print actions without labelling or spawning
 USAGE
 }
 
@@ -81,7 +75,7 @@ now() { date +%s; }
 
 # ---- GitHub helpers ---------------------------------------------------------
 
-LABELS="ready in-progress needs-browser needs-migration needs-help task epic"
+LABELS="ready in-progress needs-help task epic"
 ensure_labels() {
   local l
   for l in $LABELS; do
@@ -96,43 +90,24 @@ ready_issues() {
 }
 
 issue_state() { gh issue view "$1" --json state --jq .state 2>/dev/null || echo MISSING; }
-issue_has_label() { gh issue view "$1" --json labels --jq ".labels[].name" 2>/dev/null | grep -x "$2" >/dev/null; }
-
-# open PRs from task/* branches: "<pr> <issue> <draft> <labels,comma>"
-task_prs() {
-  gh pr list --state open --limit 100 --json number,headRefName,isDraft,labels \
-    --jq '.[] | select(.headRefName | startswith("task/")) |
-          "\(.number) \(.headRefName | ltrimstr("task/")) \(.isDraft) \([.labels[].name] | join(","))"'
-}
-
-pr_for_issue() {
-  gh pr list --state all --head "task/$1" --limit 1 --json number --jq '.[0].number // empty'
-}
 
 # ---- tmux helpers -----------------------------------------------------------
 
 win_exists() { tmux list-windows -F '#W' | grep -x "$1" >/dev/null; }
-windows_with_prefix() { tmux list-windows -F '#W' | grep "^$1" || true; }
+worker_windows() { tmux list-windows -F '#W' | grep '^mw-' || true; }
+
 kill_win() {
-  local name=$1 wt
+  local name=$1 issue=${1#mw-} wt="$REPO/.worktree/${1#mw-}"
   win_exists "$name" && run tmux kill-window -t "=$name"
-  rm -f "$STATE/$name.start" "$STATE/$name.warned"
-  case "$name" in
-    mw-*) wt="$REPO/.worktree/${name#mw-}"
-          [ -d "$wt" ] && run git -C "$REPO" worktree remove --force "$wt" ;;
-    mi-*) # the integrator works in the root checkout; leave it on main
-          run git -C "$REPO" checkout -q main || true ;;
-  esac
+  rm -f "$STATE/$name.start" "$STATE/$name.warned" "$STATE/retry-$issue"
+  [ -d "$wt" ] && run git -C "$REPO" worktree remove --force "$wt"
+  run git -C "$REPO" branch -D "task/$issue" >/dev/null 2>&1 || true
   return 0
 }
 
 spawn() {
-  local name=$1 skill=$2 arg=$3 env
-  case "$skill" in
-    maestro-worker) env="MAESTRO_ROLE=worker MAESTRO_ISSUE=$arg" ;;
-    *) env="MAESTRO_ROLE=integrator MAESTRO_PR=$arg" ;;
-  esac
-  local cmd="env $env claude $CLAUDE_ARGS '/ak:$skill $arg'"
+  local issue=$1 name="mw-$1"
+  local cmd="env MAESTRO_ROLE=worker MAESTRO_ISSUE=$issue claude $CLAUDE_ARGS '/ak:maestro-worker $issue'"
   log "spawn $name: $cmd"
   if [ "$DRY" = 0 ]; then
     tmux new-window -d -n "$name" -c "$REPO" "$cmd"
@@ -147,76 +122,47 @@ win_age() {
 }
 
 needs_help() {
-  local kind=$1 num=$2 why=$3
-  log "needs-help $kind #$num: $why"
-  if [ "$kind" = issue ]; then
-    run gh issue edit "$num" --add-label needs-help --remove-label in-progress --remove-label ready
-    run gh issue comment "$num" --body "maestro-daemon: needs help. $why"
-  else
-    run gh pr edit "$num" --add-label needs-help
-    run gh pr comment "$num" --body "maestro-daemon: needs help. $why"
-  fi
+  local issue=$1 why=$2
+  log "needs-help #$issue: $why"
+  run gh issue edit "$issue" --add-label needs-help --remove-label in-progress --remove-label ready
+  run gh issue comment "$issue" --body "maestro-daemon: needs help. $why"
 }
 
 # ---- tick phases ------------------------------------------------------------
 
 reap_workers() {
-  local w issue pr state
-  for w in $(windows_with_prefix mw-); do
+  local w issue state
+  for w in $(worker_windows); do
     issue=${w#mw-}
     state=$(issue_state "$issue")
-    pr=$(pr_for_issue "$issue")
     if [ "$state" != OPEN ]; then
       log "reap $w: issue $state"; kill_win "$w"; continue
     fi
-    if [ -n "$pr" ] && [ "$(gh pr view "$pr" --json isDraft --jq .isDraft)" = false ]; then
-      log "reap $w: PR #$pr open"; kill_win "$w"; continue
-    fi
-    warn_stale "$w" issue "$issue" "worker has run longer than ${STALE}s without opening a PR; it is still running."
+    warn_stale "$w" "$issue"
   done
 }
 
 # Warn once per window, and only when --stale is set. The window keeps running.
 warn_stale() {
-  local w=$1 kind=$2 num=$3 why=$4
+  local w=$1 issue=$2
   [ "$STALE" -gt 0 ] || return 0
   [ -f "$STATE/$w.warned" ] && return 0
   [ "$(win_age "$w")" -gt "$STALE" ] || return 0
   touch "$STATE/$w.warned"
-  log "stale $kind #$num: $why"
-  if [ "$kind" = issue ]; then
-    run gh issue edit "$num" --add-label needs-help
-    run gh issue comment "$num" --body "maestro-daemon: $why"
-  else
-    run gh pr edit "$num" --add-label needs-help
-    run gh pr comment "$num" --body "maestro-daemon: $why"
-  fi
+  log "stale #$issue: worker has run longer than ${STALE}s; it is still running."
+  run gh issue edit "$issue" --add-label needs-help
+  run gh issue comment "$issue" --body "maestro-daemon: worker has run longer than ${STALE}s without closing the issue; it is still running."
 }
 
-reap_integrators() {
-  local w pr state draft
-  for w in $(windows_with_prefix mi-); do
-    pr=${w#mi-}
-    state=$(gh pr view "$pr" --json state,isDraft --jq '"\(.state) \(.isDraft)"' 2>/dev/null || echo "MISSING false")
-    draft=${state#* }; state=${state% *}
-    if [ "$state" != OPEN ] || [ "$draft" = true ]; then
-      log "reap $w: PR $state draft=$draft"; kill_win "$w"; continue
-    fi
-    warn_stale "$w" pr "$pr" "integrator has run longer than ${STALE}s; it is still running."
-  done
-}
-
-# An in-progress issue with no window and no open PR lost its worker. Give it
-# one retry, then ask for help.
+# An in-progress issue with no window lost its worker. Give it one retry,
+# then ask for help.
 requeue_orphans() {
-  local issue pr retry
+  local issue retry
   for issue in $(gh issue list --label in-progress --state open --limit 50 --json number --jq '.[].number'); do
     win_exists "mw-$issue" && continue
-    pr=$(pr_for_issue "$issue")
-    [ -n "$pr" ] && [ "$(gh pr view "$pr" --json state --jq .state)" = OPEN ] && continue
     retry="$STATE/retry-$issue"
     if [ -f "$retry" ]; then
-      needs_help issue "$issue" "worker disappeared twice without opening a PR."
+      needs_help "$issue" "worker disappeared twice without finishing."
       rm -f "$retry"
     else
       log "requeue #$issue: worker gone, retrying once"
@@ -226,26 +172,16 @@ requeue_orphans() {
   done
 }
 
-dispatch() {
-  local running issue
-  running=$(windows_with_prefix mw- | wc -l)
-  for issue in $(ready_issues); do
-    [ "$running" -lt "$MAX_WORKERS" ] || break
-    log "claim #$issue"
-    run gh issue edit "$issue" --add-label in-progress --remove-label ready
-    spawn "mw-$issue" maestro-worker "$issue"
-    running=$((running + 1))
-  done
-}
-
+# Issues that say "Blocked by #N" and carry no maestro label become ready once
+# every blocker is closed.
 unblock_dependents() {
-  local closed=$1 num body blockers b all_closed
+  local num body blockers b all_closed
   gh issue list --state open --limit 100 --search "\"Blocked by\" in:body" \
     --json number,body,labels \
     --jq '.[] | select(any(.labels[]; .name == "ready" or .name == "in-progress" or .name == "needs-help") | not) | "\(.number)\t\(.body | gsub("\n"; " "))"' |
   while IFS=$'\t' read -r num body; do
     blockers=$(grep -oiE 'blocked by[^.]*' <<<"$body" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
-    grep -x "$closed" <<<"$blockers" >/dev/null || continue
+    [ -n "$blockers" ] || continue
     all_closed=1
     for b in $blockers; do
       [ "$(issue_state "$b")" = CLOSED ] || { all_closed=0; break; }
@@ -257,51 +193,22 @@ unblock_dependents() {
   done
 }
 
-merge_pr() {
-  local pr=$1 issue=$2 mergeable out
-  mergeable=$(gh pr view "$pr" --json mergeable --jq .mergeable)
-  if [ "$mergeable" = CONFLICTING ]; then
-    needs_help pr "$pr" "merge conflict with main; rebase or resolve by hand."
-    return
-  fi
-  log "merge PR #$pr (issue #$issue)"
-  if [ "$DRY" = 1 ]; then log "dry: gh pr merge $pr --squash --delete-branch"; return; fi
-  if out=$(gh pr merge "$pr" --squash --delete-branch 2>&1); then
-    if [ "$(issue_state "$issue")" = OPEN ]; then
-      gh issue close "$issue" --comment "Merged in #$pr." >/dev/null
-    fi
-    gh issue edit "$issue" --remove-label in-progress >/dev/null 2>&1 || true
-    git -C "$REPO" branch -D "task/$issue" >/dev/null 2>&1 || true
-    rm -f "$STATE/retry-$issue"
-    unblock_dependents "$issue"
-  else
-    needs_help pr "$pr" "gh pr merge failed: $out"
-  fi
-}
-
-integrate() {
-  local line pr issue draft labels
-  while read -r line; do
-    [ -n "$line" ] || continue
-    read -r pr issue draft labels <<<"$line"
-    [ "$draft" = false ] || continue
-    case ",$labels," in
-      *,needs-help,*) continue ;;
-      *,needs-browser,*|*,needs-migration,*)
-        win_exists "mi-$pr" && continue
-        [ -z "$(windows_with_prefix mi-)" ] || continue
-        spawn "mi-$pr" maestro-integrator "$pr"
-        ;;
-      *) merge_pr "$pr" "$issue" ;;
-    esac
-  done <<<"$(task_prs)"
+dispatch() {
+  local running issue
+  running=$(worker_windows | wc -l)
+  for issue in $(ready_issues); do
+    [ "$running" -lt "$MAX_WORKERS" ] || break
+    log "claim #$issue"
+    run gh issue edit "$issue" --add-label in-progress --remove-label ready
+    spawn "$issue"
+    running=$((running + 1))
+  done
 }
 
 tick() {
   reap_workers
-  reap_integrators
   requeue_orphans
-  integrate
+  unblock_dependents
   dispatch
 }
 

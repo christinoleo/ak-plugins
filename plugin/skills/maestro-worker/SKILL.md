@@ -1,58 +1,56 @@
 ---
 name: maestro-worker
-description: Implement one GitHub issue as a maestro worker, from worktree to PR. The argument is the issue number.
+description: Implement one GitHub issue as a maestro worker, from worktree to merged PR. The argument is the issue number.
 disable-model-invocation: true
 argument-hint: "<issue>"
 ---
 
-You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement. The daemon that started you reads GitHub, not this terminal: your PR and its labels are your whole report, and it kills this session once the PR is ready. Your session sits at the repo root; the work happens in a worktree under `.worktree/<issue>`, which is gitignored.
+You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you own it end to end: implement, verify, open the PR, merge it. The daemon that started you reads GitHub, not this terminal. Once the issue is closed it removes your worktree and ends this session. Your session sits at the repo root; the work happens in a worktree under `.worktree/<issue>`, which is gitignored.
 
 ## Pick up
 
-1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context. When the issue is an architecture task (a deepening, a seam, an adapter), load the `codebase-design` skill first and use its vocabulary.
-2. Check for a prior round with `gh pr list --head task/<issue> --state open`. An open draft PR means the integrator sent it back: create the worktree from the remote branch, read `gh pr view <pr> --comments`, and treat the rejection as the task.
-
-   ```bash
-   git fetch origin && git worktree add -B task/<issue> .worktree/<issue> origin/task/<issue>
-   ```
-
-   Otherwise start fresh:
+1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context.
+2. Create the worktree. If `origin/task/<issue>` already exists, a previous round left work behind: start from it instead of `origin/main` and read `gh pr view task/<issue> --comments` for what went wrong.
 
    ```bash
    git fetch origin && git worktree add -b task/<issue> .worktree/<issue> origin/main
    ```
 
    From here on every command runs inside `.worktree/<issue>`. Install dependencies there if the project needs them.
-3. If the issue lacks what you need to start, label it and stop. Do not guess.
-
-   ```bash
-   gh issue edit <issue> --add-label needs-help
-   gh issue comment <issue> --body "Blocked: <what is missing>"
-   ```
+3. If the issue lacks what you need to start, ask for help (see below) and stop. Do not guess.
 
 ## Implement
 
 4. Implement the issue.
-5. Before committing, run this checklist in order:
+5. Verify, in order:
    1. The project's lint and test suite, until both pass.
    2. `/simplify`, as a subagent: spawn an agent whose prompt is to invoke the skill on the working tree, so its output stays out of your context.
    3. `/code-review` at medium, as a subagent the same way. Fix what it finds.
    4. Lint and tests again.
+   5. If the change is visible in a UI, start the dev server from the worktree and look at it with Chrome DevTools: open the screen, exercise the change, read the console. Stop the server afterwards.
+6. Commit and push: `git push -u origin task/<issue>`.
 
-   The suite is your whole verification; the browser belongs to the integrator.
-6. Commit and `git push -u origin task/<issue>`.
+## Merge
 
-If you are stuck after a real attempt, push what you have, open a draft PR, label the issue `needs-help` with a comment naming the blocker, remove the worktree as in step 9, and stop.
+7. Bring the branch up to date: `git fetch origin && git rebase origin/main`. Resolve conflicts when the resolution is obvious, rerun the tests, and force-push with `--force-with-lease`. When a conflict touches logic you do not understand, or resolving it would drop someone else's change, stop rebasing and ask for help.
+8. Open the PR and merge it:
 
-## Hand off
+   ```bash
+   gh pr create --fill --body "Closes #<issue>. <what changed, a sentence or two>"
+   gh pr merge --squash --delete-branch
+   ```
 
-7. Run `/handoff` with the argument "integrator checking the PR for issue #<issue>". It writes a document for a fresh agent, and the integrator is that agent.
-8. Open the PR as a draft, or update the existing one, with that document as the body. Start the body with `Closes #<issue>`. End it with a "Verify" section: the command that starts the dev server, the URL to open, and any state or account needed to see the change. Write "No UI change" when there is nothing to look at. Then label it:
-   - `needs-browser` when the change is visible in a UI.
-   - `needs-migration` when it adds or edits a database migration.
+   The merge closes the issue. Stop.
 
-   A PR with neither label merges without anyone looking at it again.
-9. Remove the worktree: `git worktree remove --force .worktree/<issue>`. Everything is pushed, so nothing is lost.
-10. `gh pr ready <pr>`. This is the signal: the daemon merges it or hands it to the integrator, and ends this session. Stop.
+## Ask for help
 
-A Stop hook enforces this: until the PR is ready or the issue is labelled `needs-help`, ending your turn puts you back to work with a reminder. After three such reminders it labels the issue `needs-help` for you.
+Some things the master decides, not you. Before merging, ask for help when the change adds or edits a database migration, when the rebase in step 7 is not safe, or when you are stuck after a real attempt. Push what you have, open the PR if there is one, and hand over:
+
+```bash
+gh issue edit <issue> --add-label needs-help
+gh issue comment <issue> --body "<what needs a decision, and what you would do>"
+```
+
+Then stop. Do not merge.
+
+A Stop hook enforces this: until the issue is closed or labelled `needs-help`, ending your turn puts you back to work with a reminder. After three such reminders it labels the issue `needs-help` for you.

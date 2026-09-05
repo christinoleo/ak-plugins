@@ -1,18 +1,17 @@
 ---
 name: maestro
-description: Make this session the master orchestrator. It interviews requirements, files them as GitHub issues, and starts the maestro daemon, which spawns maestro-worker sessions per issue and merges or hands their PRs to a maestro-integrator session.
+description: Make this session the master orchestrator. It interviews requirements, files them as GitHub issues, and starts the maestro daemon, which spawns one maestro-worker session per issue. Workers implement, verify, and merge on their own and label needs-help when a decision is needed.
 disable-model-invocation: true
 ---
 
-This session is the master orchestrator. It interviews, plans, and decides. Everything operational runs elsewhere: the daemon dispatches and merges, workers implement through the `maestro-worker` skill, the integrator checks browsers and migrations through the `maestro-integrator` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.
+This session is the master orchestrator. It interviews, plans, and decides. Everything operational runs elsewhere: the daemon dispatches, workers implement and merge through the `maestro-worker` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.
 
 ## Setup
 
 Ask the user once and keep the answers for the session.
 
-1. **Workers.** How many at once. Each is a fresh `claude` session in its own tmux window, started by the daemon with `--dangerously-skip-permissions` and `--model opus`, and killed once its PR is open. One session per task keeps every worker's context clean without a `/clear`.
-2. **Integrator.** Always on with the daemon: one session at a time, spawned only for PRs labelled `needs-browser` or `needs-migration`. Every other PR the daemon merges itself. Browser verification is slow and memory-hungry, so it never runs in parallel.
-3. **Parallel checkouts.** Workers build and test in `./.worktree/<issue>`. The integrator uses the root checkout and keeps its main current; nothing else pulls there. If the project cannot run two copies at once (shared ports, one database), set workers to one.
+1. **Workers.** How many at once. Each is a fresh `claude` session in its own tmux window, started by the daemon with `--dangerously-skip-permissions` and `--model opus`, and killed once its issue is closed. One session per task keeps every worker's context clean.
+2. **Parallel checkouts.** Workers build, test, and run dev servers in `./.worktree/<issue>`. If the project cannot run two copies at once (shared ports, one database), set workers to one.
 
 Then prepare the repo:
 
@@ -23,23 +22,21 @@ Then prepare the repo:
   tmux new-window -d -n maestro-daemon "bash <plugin-root>/scripts/maestro-daemon.sh --max-workers <N>"
   ```
 
-  It creates the labels it needs, polls GitHub every 30 seconds, and logs to `.worktree/.maestro/daemon.log`. Pass `--dry-run --once` first to see what it would do. Sessions it spawns carry `MAESTRO_ROLE` in their environment, which the plugin's Stop hook uses to keep a worker or integrator working until its PR reaches a terminal state.
+  It creates the labels it needs, polls GitHub every 30 seconds, and logs to `.worktree/.maestro/daemon.log`. Pass `--dry-run --once` first to see what it would do. Sessions it spawns carry `MAESTRO_ROLE` in their environment, which the plugin's Stop hook uses to keep a worker working until its issue is closed or it has asked for help.
 
 ## Intake
 
-Run every requirement through the installed skills. `grilling` stress-tests the idea. `research` and `domain-modeling` fill gaps. `/replan` checks coverage. Then file the tasks with `/plan-to-issues`. The daemon starts a worker for each issue labelled `ready` as soon as a slot is free, and moves blocked issues to `ready` when their `Blocked by #N` lines all close.
-
-Architecture is intake too. At the start of an engagement, and again after a batch of tasks has merged, run `improve-codebase-architecture` (after `domain-modeling` when the project has no `CONTEXT.md`). It surfaces deepening opportunities and grills the user through the ones they pick. The picks become issues like any other requirement.
+Stress-test each requirement with `grilling`, then file the tasks with `/plan-to-issues`. The daemon starts a worker for each issue labelled `ready` as soon as a slot is free, and moves blocked issues to `ready` when their `Blocked by #N` lines all close. Reach for `research`, `domain-modeling`, or `/replan` when a requirement is unclear, not as a fixed step.
 
 ## Labels
 
-| label | on | meaning |
-|---|---|---|
-| `ready` | issue | no blockers, daemon may claim it |
-| `in-progress` | issue | a worker owns it |
-| `needs-browser` | PR | integrator must verify it in the browser |
-| `needs-migration` | PR | integrator must check the database migration |
-| `needs-help` | issue or PR | automation gave up; a human or this session decides |
+| label | meaning |
+|---|---|
+| `ready` | no blockers, daemon may claim it |
+| `in-progress` | a worker owns it |
+| `needs-help` | the worker wants a decision from this session or the user |
+
+Workers merge their own PRs. They stop and label `needs-help` instead when the change carries a database migration, when a rebase would risk dropping someone else's work, or when they are stuck. Nobody re-verifies a merged PR; when something on main turns out broken, file an issue and it becomes a task like any other.
 
 ## While it runs
 
@@ -47,13 +44,12 @@ Run `/loop` at a slow pace, fifteen minutes or so. Each tick:
 
 ```bash
 gh issue list --label needs-help --state open
-gh pr list --label needs-help --state open
 ```
 
-Each hit carries a comment saying what failed: a worker that gave up, a merge conflict, a rejected browser check. The daemon never closes a session over it, so the worker's or integrator's window is still there to read. Resolve it or take it to the user, then remove `needs-help` and put the issue back to `ready`, or fix the PR and remove the label so the daemon merges it. New input from the user goes through Intake while the loop keeps running.
+Each hit carries a comment saying what the worker needs. The daemon never closes a session over it, so the worker's window is still there to read. Decide, or take it to the user. Then either finish the task yourself (merge the PR, close the issue) or remove `needs-help` and put the issue back to `ready` so a fresh worker picks it up with your comment. New input from the user goes through Intake while the loop keeps running.
 
-Stop when there are no open task issues or task PRs and the user has nothing pending: kill the `maestro-daemon` window.
+Stop when there are no open task issues and the user has nothing pending: kill the `maestro-daemon` window.
 
 ## Without tmux
 
-On a subagent or agent-team transport there is no daemon. Run `/loop` yourself: read `<plugin-root>/skills/maestro-worker/SKILL.md` and put its body in each worker's prompt with the issue number, merge each PR yourself, and reset nothing, since every subagent starts empty.
+On a subagent or agent-team transport there is no daemon. Run `/loop` yourself: read `<plugin-root>/skills/maestro-worker/SKILL.md` and put its body in each worker's prompt with the issue number.

@@ -27,15 +27,14 @@ Personal Claude Code plugin marketplace. Dev workflow commands plus curated pick
 
 ## `ak` scripts
 
-`plugin/scripts/maestro-daemon.sh` is the dispatch and merge loop behind `/maestro`. It runs inside the master's tmux session, polls GitHub, claims `ready` issues, spawns one `claude` window per issue up to `--max-workers`, merges task PRs, spawns one integrator window at a time for PRs labelled `needs-browser` or `needs-migration`, and labels anything it cannot resolve `needs-help`. Run it with `--dry-run --once` to preview. Sessions it spawns carry `MAESTRO_ROLE`, and `plugin/hooks/maestro-stopgate.sh` blocks their Stop until the PR is in a terminal state, giving up with `needs-help` after three blocks.
+`plugin/scripts/maestro-daemon.sh` is the dispatch loop behind `/maestro`. It runs inside the master's tmux session, polls GitHub, claims `ready` issues, spawns one `claude` window per issue up to `--max-workers`, and cleans up once the worker has merged and the issue is closed. Workers merge their own PRs and label `needs-help` when they want a decision. Run it with `--dry-run --once` to preview. Sessions it spawns carry `MAESTRO_ROLE`, and `plugin/hooks/maestro-stopgate.sh` blocks their Stop until the issue is closed or labelled `needs-help`, giving up with `needs-help` after three blocks.
 
 ## `ak` skills
 
 | Skill | Description |
 |-------|-------------|
 | `/maestro` | Turn the session into a master orchestrator: interview requirements, file them as issues, start the maestro daemon, and poll `needs-help` |
-| `/maestro-worker` | One worker task, started by the daemon: worktree under `.worktree/`, implement an issue, lint and test, `/simplify` and `/code-review` as subagents, open a PR with a `/handoff` body and `needs-browser` / `needs-migration` labels |
-| `/maestro-integrator` | One integrator check, started by the daemon: `/verify` in the browser or a migration review, then clear the labels for merge or send the PR back as a draft |
+| `/maestro-worker` | One worker task, started by the daemon: worktree under `.worktree/`, implement an issue, lint and test, `/simplify` and `/code-review` as subagents, check UI changes in the browser, rebase, open the PR and merge it; label `needs-help` for migrations, unsafe rebases, or blockers |
 | `/caveman` | Ultra-compressed conversation register that drops filler while keeping technical accuracy. Chat only, never applies to files, commits, issues or anything published. **On by default**: the `SessionStart` hook activates it every session, so typing `/caveman` is only ever a re-assert. Say "stop caveman" to drop it for this session, or `/caveman-off` to stop it coming back. |
 
 ### Vendored engineering skills
