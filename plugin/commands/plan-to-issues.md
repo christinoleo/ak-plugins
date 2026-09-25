@@ -64,6 +64,14 @@ gh issue edit <task-id> --add-label ready
 Tasks that are blocked should mention "Blocked by #<other-id>" in their body and stay without
 the `ready` label.
 
+Tasks a person has to do by hand — issuing a real invite, clicking through a vendor's
+dashboard — get the `hold` label instead of `ready`, whether blocked or not. A maestro
+daemon never claims, requeues, or unblocks a `hold` issue:
+
+```bash
+gh issue edit <task-id> --add-label hold
+```
+
 ## Step 4: create the epic
 
 Now create the epic with a task list referencing every task issue created in Step 3. GitHub

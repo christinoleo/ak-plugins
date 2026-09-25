@@ -15,6 +15,8 @@
 #
 # All state lives in GitHub labels; nothing is messaged to Claude sessions.
 # Workers label needs-help when they want a decision; the master polls it.
+# An issue labelled hold is someone else's — a person's hands-on task, or the
+# master's own — and no phase below claims, requeues, or unblocks it.
 #
 # Spawned sessions get MAESTRO_ROLE=worker and MAESTRO_ISSUE in their
 # environment; hooks/maestro-stopgate.sh reads them to gate Stop.
@@ -75,7 +77,7 @@ now() { date +%s; }
 
 # ---- GitHub helpers ---------------------------------------------------------
 
-LABELS="ready in-progress needs-help task epic"
+LABELS="ready in-progress needs-help hold task epic"
 ensure_labels() {
   local l
   for l in $LABELS; do
@@ -86,7 +88,7 @@ ensure_labels() {
 ready_issues() {
   gh issue list --label ready --state open --search "sort:created-asc" --limit 50 \
     --json number,labels \
-    --jq '.[] | select(any(.labels[]; .name == "in-progress" or .name == "needs-help") | not) | .number'
+    --jq '.[] | select(any(.labels[]; .name == "in-progress" or .name == "needs-help" or .name == "hold") | not) | .number'
 }
 
 issue_state() { gh issue view "$1" --json state --jq .state 2>/dev/null || echo MISSING; }
@@ -162,10 +164,11 @@ warn_stale() {
 }
 
 # An in-progress issue with no window lost its worker. Give it one retry,
-# then ask for help.
+# then ask for help. One put on hold was taken back on purpose.
 requeue_orphans() {
   local issue retry
-  for issue in $(gh issue list --label in-progress --state open --limit 50 --json number --jq '.[].number'); do
+  for issue in $(gh issue list --label in-progress --state open --limit 50 --json number,labels \
+    --jq '.[] | select(any(.labels[]; .name == "hold") | not) | .number'); do
     win_exists "$issue" && continue
     retry="$STATE/retry-$issue"
     if [ -f "$retry" ]; then
@@ -185,7 +188,7 @@ unblock_dependents() {
   local num body blockers b all_closed
   gh issue list --state open --limit 100 --search "\"Blocked by\" in:body" \
     --json number,body,labels \
-    --jq '.[] | select(any(.labels[]; .name == "ready" or .name == "in-progress" or .name == "needs-help") | not) | "\(.number)\t\(.body | gsub("\n"; " "))"' |
+    --jq '.[] | select(any(.labels[]; .name == "ready" or .name == "in-progress" or .name == "needs-help" or .name == "hold") | not) | "\(.number)\t\(.body | gsub("\n"; " "))"' |
   while IFS=$'\t' read -r num body; do
     blockers=$(grep -oiE 'blocked by[^.]*' <<<"$body" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
     [ -n "$blockers" ] || continue

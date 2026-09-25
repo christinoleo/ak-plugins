@@ -35,6 +35,9 @@ Stress-test each requirement with `grilling`, then file the tasks with `/plan-to
 | `ready` | no blockers, daemon may claim it |
 | `in-progress` | a worker owns it |
 | `needs-help` | the worker wants a decision from this session or the user |
+| `hold` | not the daemon's: a task a person does by hand, or one this session does itself. The daemon never claims, requeues, or unblocks it |
+
+Keep an issue away from the daemon with `hold`, never with `needs-help`. `needs-help` means a worker stopped and is waiting on a decision, and that is how dashboards read it: an issue parked under it shows up as someone blocked on you. Label the hands-on tasks `hold` when you file them, and drop `in-progress` when you take one back from a worker.
 
 Workers merge their own PRs. They stop and label `needs-help` instead when the change carries a database migration, when a rebase would risk dropping someone else's work, or when they are stuck. Nobody re-verifies a merged PR. When something on main turns out broken, file an issue and it becomes a task like any other.
 
