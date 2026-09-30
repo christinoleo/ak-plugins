@@ -7,7 +7,7 @@ full license text is kept alongside this file as `LICENSE.pstack`.
 
 ## What was taken
 
-Twenty `principle-*` skills, plus `architect`, `arena`, `automate-me`, `blast-radius`, `bro`,
+Twenty-two `principle-*` skills, plus `architect`, `arena`, `automate-me`, `blast-radius`, `bro`,
 `create-verification-skill`, `explain-work`, `figure-it-out`, `how`, `interrogate`,
 `maintain-verification-skill`, `no-comments`, `recall`, `reflect`, `show-me-your-work`, `swarm`,
 `technical-writing`, `typescript-best-practices`, `unslop`, and `why`. The `comment-sicko` agent
@@ -27,6 +27,8 @@ came across too, since `no-comments` spawns it.
   model slug. Every slug it knows about belongs to a different vendor's catalog, and the skills
   that read it have been ported to Claude Code model tiers, so there is nothing left for it to
   configure.
+- `make-bot-ui`. It builds pages that wake a Grok Bot over a webhook, a product this plugin has
+  no counterpart for.
 - `principle-never-block-on-the-human`. It instructs the agent to act first and explain
   afterwards, which conflicts with ordinary change-control expectations.
 - `tdd`. The `mattpocock-skills` plugin ships a fuller one under the same name.
@@ -74,11 +76,26 @@ is all this plugin has. Beyond that:
 - `show-me-your-work`'s transcript audit moved to `~/.claude/projects/<project-slug>/`, and its
   mandatory cross-model review became a reviewer with an assigned skeptic's lens.
 
-- `show-me-your-work` and `technical-writing` had `disable-model-invocation` removed. Upstream
-  ships both as user-invoked only. Here the agent should reach for them on its own: the decision
-  trail is most valuable on exactly the long unattended runs where nobody is around to ask for it,
-  and the writing standard should apply to a PR description whether or not someone typed the
-  slash command.
+- Every vendored skill had `disable-model-invocation` removed. Upstream ships most of them as
+  user-invoked only. Here the agent should reach for them on its own: a principle helps when the
+  situation it describes comes up, not when someone remembers to type its name, and the decision
+  trail from `show-me-your-work` is most valuable on exactly the long unattended runs where nobody
+  is around to ask for it. `automate-me` still tells the mode skills it writes to set the flag,
+  because those are a user's personal register and should not switch on by themselves.
+- `how` lost its Critique mode along with `critic-prompt.md` and `critique-rubric.md`, following
+  upstream, which dropped them in favour of `interrogate` and `architect`.
+- `no-comments` spawned `subagent_type: "Comment Sicko"`, which never resolved after the agent was
+  renamed. It now spawns `ak:comment-sicko`.
+- `reflect` routed new skills and description tuning to Cursor's `create-skill`. Both now go to
+  `writing-for-agents`.
+
+## Upstream sync
+
+Last synced against `cursor/plugins` commit `12d587d` (2026-09-23). The first import was taken at
+`63d938c` (2026-08-13). Each sync is a three-way merge per file with the previous sync commit as
+the base, so local ports survive and upstream prose changes come across. Upstream changes that only
+touch model slugs, the `pstack-models.mdc` rule, or Cursor's Task tool are dropped in the merge,
+since the ports above already replace them.
 
 ## The one vendored script
 

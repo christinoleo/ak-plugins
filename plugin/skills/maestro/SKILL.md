@@ -1,7 +1,6 @@
 ---
 name: maestro
-description: Make this session the master orchestrator. It interviews requirements, files them as GitHub issues, and starts the maestro daemon, which spawns one maestro-worker session per issue. Workers implement, verify, and merge on their own and label needs-help when a decision is needed.
-disable-model-invocation: true
+description: Make this session the master orchestrator. It interviews requirements, files them as GitHub issues, and starts the maestro daemon, which spawns one maestro-worker session per issue. Workers implement, verify, and merge on their own and label needs-help when a decision is needed. Use when the user asks to orchestrate parallel workers or to split a large body of work into issues that run in parallel. Do not use for a single task this session can do itself, and confirm with the user before starting the daemon.
 ---
 
 This session is the master orchestrator. It interviews, plans, and decides. The daemon dispatches. Workers implement and merge through the `maestro-worker` skill. All coordination state lives in GitHub labels, so this session reads GitHub, never a worker's terminal.

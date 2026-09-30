@@ -60,7 +60,7 @@ ssh distilo 'bash -lc "cd ~/.claude/plugins/marketplaces/ak-plugins && git pull 
 
 ### Vendored skills carry an attribution file
 
-`plugin/skills/` holds 40 skills vendored from pstack (MIT, Lauren Tan) alongside our own
+`plugin/skills/` holds 42 skills vendored from pstack (MIT, Lauren Tan) alongside our own
 `caveman`, plus the `comment-sicko` agent in `plugin/agents/`. `plugin/skills/ATTRIBUTION.md` records what was taken, what was deliberately left
 behind, and every local change. Keep it accurate when you add, drop, or edit a vendored skill.
 `plugin/skills/LICENSE.pstack` must ship with them; MIT requires it.

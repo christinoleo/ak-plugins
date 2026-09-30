@@ -1,7 +1,6 @@
 ---
 name: reflect
 description: Spawn three parallel review subagents over the active transcript, surface learnings, and route each to a concrete edit on an existing skill. Use when the user says reflect.
-disable-model-invocation: true
 ---
 
 # Reflect
@@ -10,13 +9,7 @@ Mine the current conversation for durable learnings, then route them into skill 
 
 ## When to invoke
 
-- The user said "reflect" or "/reflect".
-- A complex task (5+ tool calls) just landed cleanly and the recipe is worth keeping.
-- The agent hit dead ends, found the working path, and the path generalizes.
-- The user corrected the agent's approach mid-task.
-- A non-trivial workflow emerged that isn't captured anywhere.
-
-Skip when the conversation is trivial, off-topic, or already covered by an existing skill the parent followed correctly. One-offs are not learnings.
+Invoke when the user says "reflect" or "/reflect". Skip when the conversation is trivial, off-topic, or already covered by an existing skill the parent followed correctly. One-offs are not learnings.
 
 ## Process
 
@@ -42,7 +35,7 @@ One message, three `Agent` calls, `subagent_type: general-purpose`, explicit `mo
 | Tooling | `opus` | `references/tooling-reviewer.md` |
 | Divergent | `fable` | `references/divergent-reviewer.md` |
 
-Pass each template verbatim, substituting the transcript path or digest where marked. Reviewers return findings in the `Task` response body.
+Pass each template verbatim, substituting the transcript path or digest where marked. Reviewers return findings in the `Agent` response body.
 
 ### 3. Synthesize
 
@@ -50,20 +43,20 @@ One `Agent` call, `subagent_type: general-purpose`, `model: opus`. The synthesiz
 
 ### 4. Structural enforcement check
 
-Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. The synthesizer already applies this criterion; this is a final pass before edits land. See the **encode-lessons-in-structure** principle skill.
+Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See the **encode-lessons-in-structure** principle skill.
 
 ### 5. Apply
 
-Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org; do not auto-apply.
+Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
 
-Backlog items file to whatever devex / backlog tracker your team uses automatically. Those are tracker submissions, not skill edits. Only the Accepted list waits for approval.
+Backlog items file to whatever devex / backlog tracker your team uses automatically. Only the Accepted list waits for approval.
 
 For each approved Accepted item, follow the Routing field exactly:
 
 - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
 - Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to the **writing-for-agents** skill from the `mattpocock-skills` plugin and run its draft / revise loop.
-- `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `create-skill` and run its description-optimization loop.
-- `new skill via create-skill: <kebab-name>`: hand creation to `create-skill`. Do not invent the shape ad hoc.
+- `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to **writing-for-agents** and rework the description until it triggers on the missed case.
+- `new skill: <kebab-name>`: hand creation to **writing-for-agents**. Do not invent the shape ad hoc.
 
 If your environment ships a SKILL.md validator, run it on every touched skill before declaring done. Skip this step if it doesn't.
 
