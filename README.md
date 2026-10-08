@@ -39,20 +39,22 @@ Personal Claude Code plugin marketplace. Dev workflow commands plus curated pick
 
 ### Vendored engineering skills
 
-Forty-two skills and one agent vendored from
+Forty-five skills and one agent vendored from
 [pstack](https://github.com/cursor/plugins/tree/main/pstack) (MIT, Lauren Tan). See
 `plugin/skills/ATTRIBUTION.md` for what was taken, what was left behind and why, and every change
 made when porting them from Cursor to Claude Code.
 
 | Skill | Description |
 |-------|-------------|
-| `principle-*` (22) | Short engineering rules the agent reads when the matching situation comes up: sizing a diff, choosing a data structure, placing validation, verifying work, sequencing commits |
+| `principle-*` (23) | Short engineering rules the agent reads when the matching situation comes up: sizing a diff, choosing a data structure, placing validation, verifying work, sequencing commits |
 | `/architect` | Sketch types, signatures, and module boundaries before code, from three competing design runners |
 | `/arena` | Run N candidates at one task, pick a base, graft the best of the losers into it |
 | `/swarm` | Fan out parallel workers over slices, races, or gauntlets, and return one report |
 | `/how` | Explain how a subsystem works, with parallel explorers for the larger questions |
 | `/why` | Trace design rationale across source control, tickets, docs, chat, observability, and error tracking |
 | `/explain-work` | Explain a body of work plainly, weaving `how` and `why` into one explanation |
+| `/correct` | Find the mistakes agents keep repeating in a repo and make each one impossible, from architecture down to docs. User-invoked only |
+| `benchmark-checklist` | Vet a measured speedup or regression before reporting or acting on it |
 | `/blast-radius` | Find what a change breaks elsewhere, and prove it by running code |
 | `/interrogate` | Four independent reviewers challenge a change, each through a different lens |
 | `/no-comments` | Spawn the `comment-sicko` agent, then act on what it finds |

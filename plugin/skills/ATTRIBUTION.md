@@ -7,8 +7,8 @@ full license text is kept alongside this file as `LICENSE.pstack`.
 
 ## What was taken
 
-Twenty-two `principle-*` skills, plus `architect`, `arena`, `automate-me`, `blast-radius`, `bro`,
-`create-verification-skill`, `explain-work`, `figure-it-out`, `how`, `interrogate`,
+Twenty-three `principle-*` skills, plus `architect`, `arena`, `automate-me`, `benchmark-checklist`,
+`blast-radius`, `bro`, `correct`, `create-verification-skill`, `explain-work`, `figure-it-out`, `how`, `interrogate`,
 `maintain-verification-skill`, `no-comments`, `recall`, `reflect`, `show-me-your-work`, `swarm`,
 `technical-writing`, `typescript-best-practices`, `unslop`, and `why`. The `comment-sicko` agent
 came across too, since `no-comments` spawns it.
@@ -22,11 +22,15 @@ came across too, since `no-comments` spawns it.
   updates proceed without asking). That last part is a policy decision rather than a porting
   problem, and it was made deliberately: this plugin does not ship a blanket grant over external
   systems. The parts of poteto-mode worth having are its principles index and its playbook
-  routing, and the twenty `principle-*` skills carry the first of those on their own.
+  routing, and the `principle-*` skills carry the first of those on their own.
 - `setup-pstack`. Its entire job is writing a global always-applied rule that pins each role to a
   model slug. Every slug it knows about belongs to a different vendor's catalog, and the skills
   that read it have been ported to Claude Code model tiers, so there is nothing left for it to
   configure.
+- `poteto-help`. Every answer it gives routes to `poteto-mode`, `setup-pstack`, the
+  `~/.cursor/rules/pstack-models.mdc` rule, or the pstack guide on GitHub, none of which exist here.
+  Porting it would mean rewriting it from scratch, and `ak-help` already does that job for this
+  plugin.
 - `make-bot-ui`. It builds pages that wake a Grok Bot over a webhook, a product this plugin has
   no counterpart for.
 - `principle-never-block-on-the-human`. It instructs the agent to act first and explain
@@ -88,11 +92,20 @@ is all this plugin has. Beyond that:
   renamed. It now spawns `ak:comment-sicko`.
 - `reflect` routed new skills and description tuning to Cursor's `create-skill`. Both now go to
   `writing-for-agents`.
+- `correct` is the one vendored skill that keeps `disable-model-invocation: true`. It reads the
+  history, then commits lint rules, CI checks, type changes, and edits to the agent instruction file,
+  one commit per mistake class. That is too much change to start on the model's own judgment, so
+  it runs only when the user types `/correct`.
+- `benchmark-checklist` lost its references to the **Opening a PR**, **Perf issue**, and
+  **Hillclimb** playbooks, which live in `poteto-mode` and were not vendored. Its closing section
+  existed only to map it onto those playbooks and was dropped.
+- `architect`'s runner prompt told each runner it ran on a different model. The runners here share
+  one vendor, so it now tells each runner it holds a different starting constraint.
 
 ## Upstream sync
 
-Last synced against `cursor/plugins` commit `12d587d` (2026-09-23). The first import was taken at
-`63d938c` (2026-08-13). Each sync is a three-way merge per file with the previous sync commit as
+Last synced against `cursor/plugins` commit `ccb5507` (2026-10-06). Earlier syncs were taken at
+`12d587d` (2026-09-23), and the first import at `63d938c` (2026-08-13). Each sync is a three-way merge per file with the previous sync commit as
 the base, so local ports survive and upstream prose changes come across. Upstream changes that only
 touch model slugs, the `pstack-models.mdc` rule, or Cursor's Task tool are dropped in the merge,
 since the ports above already replace them.
