@@ -40,74 +40,48 @@ Extract from the plan:
 
 Build a dependency graph, not just a linear chain.
 
-## Step 3: create tasks first
+The issues use the same shape as `to-tickets` in `mattpocock-skills`, so a maestro daemon and
+the Matt Pocock skills read them alike: tasks are native sub-issues of the epic, blocking uses
+GitHub's native issue dependencies, and readiness is the `ready-for-agent` triage label. The
+`--parent` and `--blocked-by` flags need `gh` 2.94 or later. On an older `gh`, use the REST
+calls in the `setup-matt-pocock-skills` GitHub tracker doc.
 
-For each phase/step in the plan, create a task issue:
+## Step 3: create the epic
 
 ```bash
-gh issue create --title "[Phase title]" --label task --body "[first paragraph of phase content].
+gh issue create --title "[Plan Title]" --label epic --body "[summary]
 
-Part of #<epic-id-placeholder>"
+Files: [list affected files]"
 ```
 
+Capture the epic ID from the output. GitHub tracks task completion through its sub-issues, so
+the body needs no task list.
+
+## Step 4: create the tasks
+
+Create the tasks in dependency order, blockers first, so every blocking edge can name a real
+issue number:
+
+```bash
+gh issue create --title "[Phase title]" --label task --label ready-for-agent --parent <epic-id> \
+  --blocked-by <other-id>,<other-id> --body "[first paragraph of phase content]"
+```
+
+- Leave out `--blocked-by` for a task with no blockers
 - Use the first paragraph as the description (keep it scannable)
 - Preserve any acceptance criteria or specific requirements in the body
 - If a phase has sub-steps, include them as a checklist in the body
 - Capture each created issue number from the output
 
-Tasks that have no blockers should also receive the `ready` label:
+`ready-for-agent` goes on blocked tasks too. It says the task is specified well enough for an
+agent. Whether it can start yet comes from its blockers, which GitHub tracks, so no label
+changes when a blocker closes.
 
-```bash
-gh issue edit <task-id> --add-label ready
-```
+Tasks a person has to do by hand, such as issuing a real invite or clicking through a vendor's
+dashboard, get `ready-for-human` instead of `ready-for-agent`, whether blocked or not. A
+maestro daemon never claims or requeues them.
 
-Tasks that are blocked should mention "Blocked by #<other-id>" in their body and stay without
-the `ready` label.
-
-Tasks a person has to do by hand — issuing a real invite, clicking through a vendor's
-dashboard — get the `hold` label instead of `ready`, whether blocked or not. A maestro
-daemon never claims, requeues, or unblocks a `hold` issue:
-
-```bash
-gh issue edit <task-id> --add-label hold
-```
-
-## Step 4: create the epic
-
-Now create the epic with a task list referencing every task issue created in Step 3. GitHub
-will auto-track completion of `- [ ]` items that reference issue numbers.
-
-```bash
-gh issue create --title "[Plan Title]" --label epic --body "[summary]
-
-Files: [list affected files]
-
-## Tasks
-- [ ] #<task1-id>
-- [ ] #<task2-id>
-- [ ] #<task3-id>
-
-## Dependencies
-- #<task2-id> blocked by #<task1-id>
-- #<task3-id> ready (parallel with #<task4-id>)
-"
-```
-
-Capture the epic ID from the output.
-
-## Step 5: backfill parent reference
-
-For each task created in Step 3, edit its body to replace `<epic-id-placeholder>` with the
-real epic number from Step 4:
-
-```bash
-gh issue edit <task-id> --body "[body with Part of #<epic-id> filled in]"
-```
-
-This gives every task a back-link to its epic via the body, and the epic auto-tracks task
-completion via its task list.
-
-## Step 6: report
+## Step 5: report
 
 Output a clear summary:
 
@@ -115,10 +89,10 @@ Output a clear summary:
 Created from: [filename or "conversation plan"]
 
 Epic: [title] (#<epic-id>)
-  ├── [Phase 1] (#<id>) ready
+  ├── [Phase 1] (#<id>) can start
   ├── [Phase 2] (#<id>) blocked by #<phase1-id>
-  ├── [Phase 3] (#<id>) ready, parallel with Phase 4
-  ├── [Phase 4] (#<id>) ready, parallel with Phase 3
+  ├── [Phase 3] (#<id>) blocked by #<phase1-id>, parallel with Phase 4
+  ├── [Phase 4] (#<id>) blocked by #<phase1-id>, parallel with Phase 3
   └── [Phase 5] (#<id>) blocked by #<phase3-id>, #<phase4-id>
 
 Dependency graph:
@@ -127,8 +101,8 @@ Dependency graph:
   Phase 1 → Phase 4 ┤→ Phase 5
                      ┘
 
-Total: [N] tasks ([M] ready, [K] blocked)
-Run `gh issue list --label ready --state open` to start working.
+Total: [N] tasks ([M] can start now, [K] blocked)
+Run `gh issue list --label ready-for-agent --state open --search "-is:blocked -label:in-progress"` to see what can start.
 ```
 
 ## Rules

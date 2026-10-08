@@ -18,13 +18,14 @@ If `$ARGUMENTS` is provided, use it as the issue ID:
 gh issue view $ARGUMENTS
 ```
 
-If no argument provided, find the next ready issue:
+If no argument provided, find the next issue on the frontier: open, specified for an agent, no
+open blocker, and not claimed:
 ```bash
-gh issue list --label ready --state open --search "sort:created-asc"
+gh issue list --label ready-for-agent --state open --search "-is:blocked -label:in-progress -label:needs-help sort:created-asc"
 ```
-Pick the first (oldest, highest priority) issue from the ready list. Run `gh issue view <id>` on it.
+Pick the first (oldest, highest priority) issue from the list. Run `gh issue view <id>` on it.
 
-If no ready issues exist, say so and stop.
+If the frontier is empty, say so and stop.
 
 ## Step 2: gather context
 
@@ -77,7 +78,7 @@ If context is sufficient:
 
 1. Claim the issue:
 ```bash
-gh issue edit <id> --add-label in-progress --remove-label ready
+gh issue edit <id> --add-label in-progress
 ```
 
 2. State your assessment briefly:
@@ -97,7 +98,7 @@ If context is insufficient:
 
 1. Claim the issue:
 ```bash
-gh issue edit <id> --add-label in-progress --remove-label ready
+gh issue edit <id> --add-label in-progress
 ```
 
 2. State what you know and what's missing:

@@ -76,10 +76,13 @@ upstream gets the same treatment before it lands.
 
 The plugin used to depend on the `bd` (Beads) CLI; that was swapped out in v1.1.0 for the `gh issue` CLI. Epic/task structure now uses:
 
-- Epic issues labeled `epic` with a task list `- [ ] #<task-id>` in the body
-- Task issues labeled `task` with `Part of #<epic-id>` in the body
-- `ready` label = no blockers; remove on `in-progress`
-- `gh issue list --label ready --state open --search "\"Part of #<EPIC>\" in:body"` is the "ready under this epic" query
+The issue shape matches `to-tickets` in `mattpocock-skills`, so both plugins and the maestro daemon read the same issues:
+
+- Epic issues labeled `epic`; tasks are native sub-issues of it (`gh issue create --parent <epic>`)
+- Task issues labeled `task` plus a triage label: `ready-for-agent` (an agent may take it, blocked or not) or `ready-for-human` (hands-on, the daemon never claims it)
+- Blocking lives only in GitHub's native issue dependencies (`--blocked-by`), never in a label or a body line
+- `in-progress` marks a claim and `needs-help` a worker waiting on a decision
+- The frontier is computed, not stored: `gh issue list --label ready-for-agent --state open --search "-is:blocked -label:in-progress -label:needs-help"`
 
 Do not reintroduce `bd` references when editing commands.
 

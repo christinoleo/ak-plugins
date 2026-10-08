@@ -9,7 +9,7 @@ You are a maestro worker. `$ARGUMENTS` is the GitHub issue to implement, and you
 
 ## Pick up
 
-1. `gh issue view <issue>`. Read it whole, and follow `Part of #<epic>` for context.
+1. `gh issue view <issue>`. Read it whole, and read its parent issue for context: `gh api repos/{owner}/{repo}/issues/<issue>/parent --jq '.number, .title, .body'`. Older issues name the parent with a `Part of #<epic>` line instead.
 2. Create the worktree. If `origin/task/<issue>` already exists, a previous round left work behind. Start from it instead of `origin/main` and read `gh pr view task/<issue> --comments` for what went wrong.
 
    ```bash

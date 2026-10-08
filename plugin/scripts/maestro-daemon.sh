@@ -9,14 +9,19 @@
 #   2. optionally warns (label + comment, never a kill) when a worker has run
 #      past --stale; off by default
 #   3. requeues in-progress issues whose worker window vanished, once
-#   4. marks issues whose "Blocked by #N" lines are all closed as ready
-#   5. claims ready issues (ready -> in-progress) and spawns one claude
+#   4. claims frontier issues (adds in-progress) and spawns one claude
 #      worker window per issue, up to --max-workers
 #
-# All state lives in GitHub labels; nothing is messaged to Claude sessions.
+# The labels follow the mattpocock-skills triage vocabulary, so tickets filed
+# by /to-tickets and /plan-to-issues feed the daemon alike. ready-for-agent
+# means a ticket is specified well enough for an agent, blocked or not.
+# Blocking lives only in GitHub's native issue dependencies. The frontier is
+# computed every tick, never stored in a label: open, ready-for-agent, no open
+# blocker, and not claimed.
+#
 # Workers label needs-help when they want a decision; the master polls it.
-# An issue labelled hold is someone else's — a person's hands-on task, or the
-# master's own — and no phase below claims, requeues, or unblocks it.
+# An issue labelled ready-for-human is someone else's — a person's hands-on
+# task, or the master's own — and no phase below claims or requeues it.
 #
 # Spawned sessions get MAESTRO_ROLE=worker and MAESTRO_ISSUE in their
 # environment; hooks/maestro-stopgate.sh reads them to gate Stop.
@@ -77,7 +82,7 @@ now() { date +%s; }
 
 # ---- GitHub helpers ---------------------------------------------------------
 
-LABELS="ready in-progress needs-help hold task epic"
+LABELS="ready-for-agent ready-for-human in-progress needs-help task epic"
 ensure_labels() {
   local l
   for l in $LABELS; do
@@ -85,10 +90,18 @@ ensure_labels() {
   done
 }
 
-ready_issues() {
-  gh issue list --label ready --state open --search "sort:created-asc" --limit 50 \
-    --json number,labels \
-    --jq '.[] | select(any(.labels[]; .name == "in-progress" or .name == "needs-help" or .name == "hold") | not) | .number'
+frontier() {
+  gh issue list --label ready-for-agent --state open --limit 50 \
+    --search "-is:blocked -label:in-progress -label:needs-help -label:ready-for-human sort:created-asc" \
+    --json number --jq '.[].number'
+}
+
+# Search results lag label and state changes by a few seconds, so a claim
+# re-reads the issue directly before taking it.
+claimable() {
+  gh issue view "$1" --json state,labels \
+    --jq '.state == "OPEN" and (any(.labels[]; .name == "in-progress" or .name == "needs-help" or .name == "ready-for-human") | not)' \
+    2>/dev/null | grep -qx true
 }
 
 issue_state() { gh issue view "$1" --json state --jq .state 2>/dev/null || echo MISSING; }
@@ -134,7 +147,7 @@ win_age() {
 needs_help() {
   local issue=$1 why=$2
   log "needs-help #$issue: $why"
-  run gh issue edit "$issue" --add-label needs-help --remove-label in-progress --remove-label ready
+  run gh issue edit "$issue" --add-label needs-help --remove-label in-progress
   run gh issue comment "$issue" --body "maestro-daemon: needs help. $why"
 }
 
@@ -164,11 +177,11 @@ warn_stale() {
 }
 
 # An in-progress issue with no window lost its worker. Give it one retry,
-# then ask for help. One put on hold was taken back on purpose.
+# then ask for help. One moved to ready-for-human was taken back on purpose.
 requeue_orphans() {
   local issue retry
   for issue in $(gh issue list --label in-progress --state open --limit 50 --json number,labels \
-    --jq '.[] | select(any(.labels[]; .name == "hold") | not) | .number'); do
+    --jq '.[] | select(any(.labels[]; .name == "ready-for-human") | not) | .number'); do
     win_exists "$issue" && continue
     retry="$STATE/retry-$issue"
     if [ -f "$retry" ]; then
@@ -177,28 +190,7 @@ requeue_orphans() {
     else
       log "requeue #$issue: worker gone, retrying once"
       touch "$retry"
-      run gh issue edit "$issue" --add-label ready --remove-label in-progress
-    fi
-  done
-}
-
-# Issues that say "Blocked by #N" and carry no maestro label become ready once
-# every blocker is closed.
-unblock_dependents() {
-  local num body blockers b all_closed
-  gh issue list --state open --limit 100 --search "\"Blocked by\" in:body" \
-    --json number,body,labels \
-    --jq '.[] | select(any(.labels[]; .name == "ready" or .name == "in-progress" or .name == "needs-help" or .name == "hold") | not) | "\(.number)\t\(.body | gsub("\n"; " "))"' |
-  while IFS=$'\t' read -r num body; do
-    blockers=$(grep -oiE 'blocked by[^.]*' <<<"$body" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
-    [ -n "$blockers" ] || continue
-    all_closed=1
-    for b in $blockers; do
-      [ "$(issue_state "$b")" = CLOSED ] || { all_closed=0; break; }
-    done
-    if [ "$all_closed" = 1 ]; then
-      log "unblock #$num: blockers all closed"
-      run gh issue edit "$num" --add-label ready
+      run gh issue edit "$issue" --remove-label in-progress
     fi
   done
 }
@@ -206,10 +198,12 @@ unblock_dependents() {
 dispatch() {
   local running issue
   running=$(worker_issues | wc -l)
-  for issue in $(ready_issues); do
+  for issue in $(frontier); do
     [ "$running" -lt "$MAX_WORKERS" ] || break
+    win_exists "$issue" && continue
+    claimable "$issue" || continue
     log "claim #$issue"
-    run gh issue edit "$issue" --add-label in-progress --remove-label ready
+    run gh issue edit "$issue" --add-label in-progress
     spawn "$issue"
     running=$((running + 1))
   done
@@ -218,7 +212,6 @@ dispatch() {
 tick() {
   reap_workers
   requeue_orphans
-  unblock_dependents
   dispatch
 }
 
